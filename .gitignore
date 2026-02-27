@@ -39,3 +39,57 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code config (contains sensitive tokens)
+.mcp.json
+
+# IDE / tool configs
+.claude/
+.agents/
+.codex/
+.cursor/
+.opencode/
+.vscode/
+.planning/
+
+# Base44 prototype (not deployed)
+fin-flow-3f363e37*/
+
+# Non-project files
+*.py
+__pycache__/
+data/
+dashb
+skema_PhD/
+PhD*/
+Quantum*/
+Base44*/
+workflows/
+*.yaml
+Dockerfile
+docker-compose.yml
+requirements.txt
+reverse-engineering*.json
+reverse\ engineering*.json
+seed_demo_data.py
+fix_workflow.py
+CLOUDINARY_SETUP_GUIDE.md
+Claude3.md
+claudev2.md
+INVESTOR_SUMMARY.md
+VIEW_DASHBOARD.md
+algosone_analysis_and_agent_system.md
+src/__init__.py
+src/__pycache__/
+src/analysis/
+src/backtesting/
+src/config.py
+src/execution/
+src/main.py
+src/monitoring/
+src/orchestrator.py
+src/research_proposal_rsm.md
+src/risk/
+src/tests/
+src/utils/
+sygma/
