@@ -25,28 +25,27 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  const { pathname } = request.nextUrl;
+
+  // Public routes — skip auth check entirely for speed
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/webhooks") ||
+    pathname.startsWith("/api/google")
+  ) {
+    return supabaseResponse;
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
-  // Public routes
-  if (pathname.startsWith("/api/webhooks")) {
-    return supabaseResponse;
-  }
-
   // Redirect unauthenticated users to /login
-  if (!user && !pathname.startsWith("/login") && !pathname.startsWith("/signup") && !pathname.startsWith("/api/auth")) {
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (user && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
