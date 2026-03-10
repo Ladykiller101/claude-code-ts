@@ -24,9 +24,14 @@ export default function LoginPage() {
     });
 
     if (authError) {
-      setError(authError.message === "Invalid login credentials"
-        ? "Email ou mot de passe incorrect"
-        : authError.message);
+      const msg = authError.message;
+      setError(
+        msg === "Invalid login credentials"
+          ? "Email ou mot de passe incorrect"
+          : msg === "Email not confirmed"
+          ? "Email non confirme. Veuillez creer un nouveau compte."
+          : msg
+      );
       setLoading(false);
     } else {
       router.push("/dashboard");

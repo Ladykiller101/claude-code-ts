@@ -19,32 +19,39 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, role },
-      },
-    });
+    try {
+      // Use server-side API route which auto-confirms the email
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, full_name: fullName, role }),
+      });
 
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
-    } else {
-      // signUp may require email confirmation depending on Supabase settings
-      // Try signing in immediately after signup
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Erreur lors de la creation du compte");
+        setLoading(false);
+        return;
+      }
+
+      // Account created and auto-confirmed — sign in immediately
+      const supabase = createClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
       if (signInError) {
-        setError("Compte cree. Veuillez verifier votre email puis vous connecter.");
+        setError(signInError.message);
         setLoading(false);
       } else {
         router.push("/dashboard");
         router.refresh();
       }
+    } catch {
+      setError("Erreur serveur, veuillez reessayer");
+      setLoading(false);
     }
   };
 
