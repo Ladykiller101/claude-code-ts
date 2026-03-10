@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 const allNavigation = [
-  { name: "Tableau de bord", href: "/", icon: LayoutDashboard, roles: ["accountant", "payroll_manager", "firm_admin"] },
+  { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard, roles: ["accountant", "payroll_manager", "firm_admin"] },
   { name: "Portail Client", href: "/portal", icon: Users, roles: ["client_admin", "client_hr", "client_readonly"] },
   { name: "Clients", href: "/clients", icon: Users, roles: ["accountant", "payroll_manager", "firm_admin"] },
   { name: "CRM", href: "/crm", icon: Users, roles: ["firm_admin"] },
@@ -98,7 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
-              const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.href}

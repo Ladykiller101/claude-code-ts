@@ -14,7 +14,7 @@ export default function Home() {
       router.replace("/login");
     } else {
       const isClient = user?.role?.startsWith("client_");
-      router.replace(isClient ? "/portal" : "/");
+      router.replace(isClient ? "/portal" : "/dashboard");
     }
   }, [isAuthenticated, isLoading, user, router]);
 
