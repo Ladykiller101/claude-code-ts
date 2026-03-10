@@ -29,6 +29,7 @@ export async function middleware(request: NextRequest) {
 
   // Public routes — skip auth check entirely for speed
   if (
+    pathname === "/" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/api/auth") ||

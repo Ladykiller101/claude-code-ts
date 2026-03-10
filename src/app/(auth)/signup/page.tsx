@@ -32,8 +32,19 @@ export default function SignupPage() {
       setError(authError.message);
       setLoading(false);
     } else {
-      router.push("/");
-      router.refresh();
+      // signUp may require email confirmation depending on Supabase settings
+      // Try signing in immediately after signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) {
+        setError("Compte cree. Veuillez verifier votre email puis vous connecter.");
+        setLoading(false);
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+      }
     }
   };
 
