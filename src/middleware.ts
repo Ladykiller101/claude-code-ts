@@ -43,8 +43,12 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect unauthenticated users to /login
+  // Unauthenticated handling
   if (!user) {
+    // API routes get 401 JSON instead of redirect
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
