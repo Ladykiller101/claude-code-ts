@@ -33,13 +33,13 @@ export default function TasksList({ tasks, clients }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <div className="p-6 border-b border-gray-100">
-        <h3 className="font-semibold text-gray-900">T\u00e2ches urgentes</h3>
-        <p className="text-sm text-gray-500 mt-1">\u00c0 traiter en priorit\u00e9</p>
+        <h3 className="font-semibold text-gray-900">Tâches urgentes</h3>
+        <p className="text-sm text-gray-500 mt-1">À traiter en priorité</p>
       </div>
       <div className="divide-y divide-gray-50">
         {tasks.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            Aucune t\u00e2che urgente
+            Aucune tâche urgente
           </div>
         ) : (
           tasks.slice(0, 5).map((task, index) => (
@@ -63,7 +63,7 @@ export default function TasksList({ tasks, clients }) {
                       {getClientName(task.client_id)}
                     </span>
                     <span className={`flex items-center gap-1 ${
-                      isPast(new Date(task.due_date)) && task.status !== "termin\u00e9e"
+                      isPast(new Date(task.due_date)) && task.status !== "terminée"
                         ? "text-rose-600"
                         : "text-gray-500"
                     }`}>

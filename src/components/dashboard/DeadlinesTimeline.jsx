@@ -8,7 +8,7 @@ import { fr } from "date-fns/locale";
 
 export default function DeadlinesTimeline({ deadlines }) {
   const upcomingDeadlines = deadlines
-    .filter(d => d.status !== 'termin\u00e9e')
+    .filter(d => d.status !== 'terminée')
     .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
     .slice(0, 8);
 
@@ -41,7 +41,7 @@ export default function DeadlinesTimeline({ deadlines }) {
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-indigo-600" />
-          Calendrier des \u00e9ch\u00e9ances
+          Calendrier des échéances
         </CardTitle>
         <p className="text-sm text-gray-500">Prochaines dates importantes</p>
       </CardHeader>

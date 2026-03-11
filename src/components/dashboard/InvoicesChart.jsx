@@ -26,7 +26,7 @@ export default function InvoicesChart({ invoices }) {
     const amount = invoice.amount_ttc || 0;
     monthlyData[monthKey].total += amount;
 
-    if (invoice.category === 'achat' || invoice.category === 'frais_g\u00e9n\u00e9raux') {
+    if (invoice.category === 'achat' || invoice.category === 'frais_généraux') {
       monthlyData[monthKey].achats += amount;
     } else if (invoice.category === 'vente') {
       monthlyData[monthKey].ventes += amount;
@@ -58,7 +58,7 @@ export default function InvoicesChart({ invoices }) {
     <Card className="border-gray-100">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900">
-          \u00c9volution des factures
+          Évolution des factures
         </CardTitle>
         <p className="text-sm text-gray-500">6 derniers mois</p>
       </CardHeader>
@@ -74,7 +74,7 @@ export default function InvoicesChart({ invoices }) {
             <YAxis
               stroke="#9ca3af"
               fontSize={12}
-              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k\u20ac`}
+              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k€`}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend

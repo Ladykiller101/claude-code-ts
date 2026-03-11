@@ -6,10 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function TasksStatusChart({ tasks }) {
   const statusCount = {
-    "\u00e0_faire": 0,
+    "à_faire": 0,
     en_cours: 0,
     en_attente_client: 0,
-    "termin\u00e9e": 0,
+    "terminée": 0,
   };
 
   tasks.forEach(task => {
@@ -19,10 +19,10 @@ export default function TasksStatusChart({ tasks }) {
   });
 
   const data = [
-    { name: "\u00c0 faire", value: statusCount["\u00e0_faire"], color: "#9ca3af" },
+    { name: "À faire", value: statusCount["à_faire"], color: "#9ca3af" },
     { name: "En cours", value: statusCount.en_cours, color: "#3b82f6" },
     { name: "En attente", value: statusCount.en_attente_client, color: "#f59e0b" },
-    { name: "Termin\u00e9es", value: statusCount["termin\u00e9e"], color: "#10b981" },
+    { name: "Terminées", value: statusCount["terminée"], color: "#10b981" },
   ].filter(item => item.value > 0);
 
   const CustomTooltip = ({ active, payload }) => {
@@ -31,7 +31,7 @@ export default function TasksStatusChart({ tasks }) {
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-100">
           <p className="font-medium text-gray-900">{data.name}</p>
-          <p className="text-sm text-gray-600">{data.value} t\u00e2che{data.value > 1 ? 's' : ''}</p>
+          <p className="text-sm text-gray-600">{data.value} tâche{data.value > 1 ? 's' : ''}</p>
           <p className="text-xs text-gray-500 mt-1">
             {((data.value / tasks.length) * 100).toFixed(0)}% du total
           </p>
@@ -45,7 +45,7 @@ export default function TasksStatusChart({ tasks }) {
     <Card className="border-gray-100">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900">
-          R\u00e9partition des t\u00e2ches
+          Répartition des tâches
         </CardTitle>
         <p className="text-sm text-gray-500">Par statut</p>
       </CardHeader>

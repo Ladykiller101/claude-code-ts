@@ -38,13 +38,13 @@ export default function DeadlinesList({ deadlines, clients }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <div className="p-6 border-b border-gray-100">
-        <h3 className="font-semibold text-gray-900">\u00c9ch\u00e9ances \u00e0 venir</h3>
+        <h3 className="font-semibold text-gray-900">Échéances à venir</h3>
         <p className="text-sm text-gray-500 mt-1">Prochaines dates importantes</p>
       </div>
       <div className="divide-y divide-gray-50">
         {deadlines.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            Aucune \u00e9ch\u00e9ance \u00e0 venir
+            Aucune échéance à venir
           </div>
         ) : (
           deadlines.slice(0, 5).map((deadline, index) => {

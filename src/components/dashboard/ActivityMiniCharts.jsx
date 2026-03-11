@@ -33,7 +33,7 @@ export default function ActivityMiniCharts({ documents, tasks, invoices }) {
   // Tasks completed per day
   const tasksData = last7Days.map((day) => {
     const count = tasks.filter((task) => {
-      if (task.status !== "termin\u00e9e") return false;
+      if (task.status !== "terminée") return false;
       const taskDate = new Date(task.updated_date || task.created_date);
       return format(taskDate, "yyyy-MM-dd") === format(day.date, "yyyy-MM-dd");
     }).length;
@@ -53,17 +53,17 @@ export default function ActivityMiniCharts({ documents, tasks, invoices }) {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <MiniChart
         data={documentsData}
-        title="Documents ajout\u00e9s"
+        title="Documents ajoutés"
         color="blue"
       />
       <MiniChart
         data={tasksData}
-        title="T\u00e2ches compl\u00e9t\u00e9es"
+        title="Tâches complétées"
         color="emerald"
       />
       <MiniChart
         data={invoicesData}
-        title="Factures trait\u00e9es"
+        title="Factures traitées"
         color="indigo"
       />
     </div>

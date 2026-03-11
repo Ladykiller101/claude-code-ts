@@ -32,7 +32,7 @@ export default function CategoryBreakdown({ invoices }) {
     const labels = {
       achat: "Achats",
       vente: "Ventes",
-      "frais_g\u00e9n\u00e9raux": "Frais g\u00e9n\u00e9raux",
+      "frais_généraux": "Frais généraux",
       immobilisation: "Immobilisations",
       autre: "Autres",
     };
@@ -43,7 +43,7 @@ export default function CategoryBreakdown({ invoices }) {
     const colors = {
       achat: "bg-blue-500",
       vente: "bg-emerald-500",
-      "frais_g\u00e9n\u00e9raux": "bg-amber-500",
+      "frais_généraux": "bg-amber-500",
       immobilisation: "bg-purple-500",
       autre: "bg-gray-500",
     };
@@ -54,7 +54,7 @@ export default function CategoryBreakdown({ invoices }) {
     <Card className="border-gray-100">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900">
-          R\u00e9partition par cat\u00e9gorie
+          Répartition par catégorie
         </CardTitle>
         <p className="text-sm text-gray-500">Montants totaux</p>
       </CardHeader>
@@ -97,7 +97,7 @@ export default function CategoryBreakdown({ invoices }) {
 
         {categoryData.length === 0 && (
           <p className="text-center text-gray-500 py-8">
-            Aucune donn\u00e9e disponible
+            Aucune donnée disponible
           </p>
         )}
       </CardContent>

@@ -58,21 +58,21 @@ export default function Dashboard() {
   // Calculs pour les stats
   const activeClients = clients.filter(c => c.status === "actif").length;
   const pendingDocuments = documents.filter(d => d.status === "en_attente").length;
-  const pendingTasks = tasks.filter(t => t.status !== "termin\u00e9e").length;
-  const urgentTasks = tasks.filter(t => t.priority === "urgente" && t.status !== "termin\u00e9e");
+  const pendingTasks = tasks.filter(t => t.status !== "terminée").length;
+  const urgentTasks = tasks.filter(t => t.priority === "urgente" && t.status !== "terminée");
 
-  // T\u00e2ches tri\u00e9es par priorit\u00e9 et date
+  // Tâches triées par priorité et date
   const sortedTasks = [...tasks]
-    .filter(t => t.status !== "termin\u00e9e")
+    .filter(t => t.status !== "terminée")
     .sort((a, b) => {
       const priorityOrder = { urgente: 0, haute: 1, moyenne: 2, basse: 3 };
       return priorityOrder[a.priority] - priorityOrder[b.priority] ||
              new Date(a.due_date) - new Date(b.due_date);
     });
 
-  // \u00c9ch\u00e9ances tri\u00e9es par date
+  // Échéances triées par date
   const sortedDeadlines = [...deadlines]
-    .filter(d => d.status !== "termin\u00e9e")
+    .filter(d => d.status !== "terminée")
     .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
 
   return (
@@ -86,7 +86,7 @@ export default function Dashboard() {
           Tableau de bord - SYGMA Conseils
         </h1>
         <p className="text-gray-400 mt-1">
-          Bienvenue ! Voici un aper\u00e7u de votre activit\u00e9.
+          Bienvenue ! Voici un aperçu de votre activité.
         </p>
       </motion.div>
 
@@ -109,21 +109,21 @@ export default function Dashboard() {
           <StatsCard
             title="Documents en attente"
             value={pendingDocuments}
-            subtitle="\u00c0 traiter"
+            subtitle="À traiter"
             icon={FileText}
             color="indigo"
           />
           <StatsCard
-            title="T\u00e2ches en cours"
+            title="Tâches en cours"
             value={pendingTasks}
             subtitle={`${urgentTasks.length} urgente(s)`}
             icon={CheckSquare}
             color="emerald"
           />
           <StatsCard
-            title="\u00c9ch\u00e9ances"
+            title="Échéances"
             value={sortedDeadlines.length}
-            subtitle="\u00c0 venir"
+            subtitle="À venir"
             icon={Clock}
             color="amber"
           />
@@ -194,7 +194,7 @@ export default function Dashboard() {
                 OCR & Extraction automatique
               </h3>
               <p className="text-indigo-100 mt-1 text-sm">
-                Uploadez vos factures et laissez l&apos;IA extraire les donn\u00e9es automatiquement
+                Uploadez vos factures et laissez l&apos;IA extraire les données automatiquement
               </p>
             </div>
           </div>
@@ -229,10 +229,10 @@ export default function Dashboard() {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-semibold text-white">
-                Suivi t\u00e2ches & \u00e9ch\u00e9ances
+                Suivi tâches & échéances
               </h3>
               <p className="text-emerald-100 mt-1 text-sm">
-                G\u00e9rez vos t\u00e2ches r\u00e9currentes et ne manquez plus aucune \u00e9ch\u00e9ance
+                Gérez vos tâches récurrentes et ne manquez plus aucune échéance
               </p>
             </div>
           </div>
@@ -242,14 +242,14 @@ export default function Dashboard() {
               className="px-5 py-2.5 bg-white text-emerald-600 font-semibold rounded-xl hover:bg-emerald-50 transition-colors inline-flex items-center gap-2"
             >
               <CheckSquare className="w-4 h-4" />
-              G\u00e9rer t\u00e2ches
+              Gérer tâches
             </a>
             <a
               href="/deadlines"
               className="px-5 py-2.5 bg-white/10 text-white font-medium rounded-xl hover:bg-white/20 transition-colors inline-flex items-center gap-2 backdrop-blur-sm"
             >
               <Clock className="w-4 h-4" />
-              Voir \u00e9ch\u00e9ances
+              Voir échéances
             </a>
           </div>
         </motion.div>

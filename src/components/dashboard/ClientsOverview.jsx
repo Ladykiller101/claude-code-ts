@@ -74,7 +74,7 @@ export default function ClientsOverview({ clients }) {
         </div>
 
         <div className="pt-4 border-t border-gray-100">
-          <p className="text-sm font-medium text-gray-700 mb-4">R\u00e9partition par type</p>
+          <p className="text-sm font-medium text-gray-700 mb-4">Répartition par type</p>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie

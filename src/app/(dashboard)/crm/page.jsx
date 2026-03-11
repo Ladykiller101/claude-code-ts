@@ -37,7 +37,7 @@ export default function CRM() {
   const pipeline = [
     { stage: "Contact initial", count: 12, value: 45000, color: "bg-blue-500" },
     { stage: "Proposition", count: 8, value: 32000, color: "bg-indigo-500" },
-    { stage: "N\u00e9gociation", count: 5, value: 25000, color: "bg-purple-500" },
+    { stage: "Négociation", count: 5, value: 25000, color: "bg-purple-500" },
     { stage: "Signature", count: 3, value: 18000, color: "bg-pink-500" }
   ];
 
@@ -45,7 +45,7 @@ export default function CRM() {
     {
       type: "meeting",
       client: "ABC Industries",
-      description: "R\u00e9union de d\u00e9couverte - Besoins comptables",
+      description: "Réunion de découverte - Besoins comptables",
       date: "Il y a 2h",
       icon: Calendar,
       color: "text-blue-400"
@@ -53,7 +53,7 @@ export default function CRM() {
     {
       type: "call",
       client: "Tech Solutions",
-      description: "Appel de suivi - Proposition envoy\u00e9e",
+      description: "Appel de suivi - Proposition envoyée",
       date: "Il y a 4h",
       icon: Phone,
       color: "text-emerald-400"
@@ -61,7 +61,7 @@ export default function CRM() {
     {
       type: "email",
       client: "Consulting Pro",
-      description: "Email - Documents re\u00e7us",
+      description: "Email - Documents reçus",
       date: "Il y a 1 jour",
       icon: Mail,
       color: "text-purple-400"
@@ -69,7 +69,7 @@ export default function CRM() {
     {
       type: "signature",
       client: "Services Plus",
-      description: "Contrat sign\u00e9 - Onboarding en cours",
+      description: "Contrat signé - Onboarding en cours",
       date: "Il y a 2 jours",
       icon: CheckCircle,
       color: "text-emerald-400"
@@ -125,8 +125,8 @@ export default function CRM() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">Pipeline</p>
-                <p className="text-2xl font-bold text-white mt-1">120K\u20ac</p>
-                <p className="text-indigo-400 text-sm mt-1">28 opportunit\u00e9s</p>
+                <p className="text-2xl font-bold text-white mt-1">120K€</p>
+                <p className="text-indigo-400 text-sm mt-1">28 opportunités</p>
               </div>
               <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-indigo-400" />
@@ -177,7 +177,7 @@ export default function CRM() {
                       </div>
                       <div className="text-right">
                         <p className="text-white font-semibold">
-                          {stage.value.toLocaleString("fr-FR")}\u20ac
+                          {stage.value.toLocaleString("fr-FR")}€
                         </p>
                         <p className="text-gray-400 text-sm">{stage.count} prospects</p>
                       </div>
@@ -196,7 +196,7 @@ export default function CRM() {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Clock className="w-5 h-5 text-amber-400" />
-                Activit\u00e9s r\u00e9centes
+                Activités récentes
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">

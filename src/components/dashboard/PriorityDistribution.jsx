@@ -12,7 +12,7 @@ export default function PriorityDistribution({ tasks }) {
     urgente: 0,
   };
 
-  tasks.filter(t => t.status !== 'termin\u00e9e').forEach(task => {
+  tasks.filter(t => t.status !== 'terminée').forEach(task => {
     if (priorityCount.hasOwnProperty(task.priority)) {
       priorityCount[task.priority]++;
     }
@@ -30,7 +30,7 @@ export default function PriorityDistribution({ tasks }) {
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-100">
           <p className="font-medium text-gray-900">{payload[0].payload.name}</p>
-          <p className="text-sm text-gray-600">{payload[0].value} t\u00e2che{payload[0].value > 1 ? 's' : ''}</p>
+          <p className="text-sm text-gray-600">{payload[0].value} tâche{payload[0].value > 1 ? 's' : ''}</p>
         </div>
       );
     }
@@ -41,9 +41,9 @@ export default function PriorityDistribution({ tasks }) {
     <Card className="border-gray-100">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900">
-          T\u00e2ches par priorit\u00e9
+          Tâches par priorité
         </CardTitle>
-        <p className="text-sm text-gray-500">T\u00e2ches en cours</p>
+        <p className="text-sm text-gray-500">Tâches en cours</p>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>

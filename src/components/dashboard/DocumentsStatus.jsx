@@ -8,9 +8,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 export default function DocumentsStatus({ documents }) {
   const statusCount = {
     en_attente: 0,
-    "trait\u00e9": 0,
-    "valid\u00e9": 0,
-    "rejet\u00e9": 0,
+    "traité": 0,
+    "validé": 0,
+    "rejeté": 0,
   };
 
   documents.forEach(doc => {
@@ -77,23 +77,23 @@ export default function DocumentsStatus({ documents }) {
           <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
             <div className="flex items-center gap-2 mb-1">
               <FileText className="w-4 h-4 text-blue-600" />
-              <span className="text-xs font-medium text-blue-600">Trait\u00e9s</span>
+              <span className="text-xs font-medium text-blue-600">Traités</span>
             </div>
-            <p className="text-2xl font-bold text-blue-700">{statusCount["trait\u00e9"]}</p>
+            <p className="text-2xl font-bold text-blue-700">{statusCount["traité"]}</p>
           </div>
           <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle className="w-4 h-4 text-emerald-600" />
-              <span className="text-xs font-medium text-emerald-600">Valid\u00e9s</span>
+              <span className="text-xs font-medium text-emerald-600">Validés</span>
             </div>
-            <p className="text-2xl font-bold text-emerald-700">{statusCount["valid\u00e9"]}</p>
+            <p className="text-2xl font-bold text-emerald-700">{statusCount["validé"]}</p>
           </div>
           <div className="bg-rose-50 rounded-xl p-3 border border-rose-100">
             <div className="flex items-center gap-2 mb-1">
               <XCircle className="w-4 h-4 text-rose-600" />
-              <span className="text-xs font-medium text-rose-600">Rejet\u00e9s</span>
+              <span className="text-xs font-medium text-rose-600">Rejetés</span>
             </div>
-            <p className="text-2xl font-bold text-rose-700">{statusCount["rejet\u00e9"]}</p>
+            <p className="text-2xl font-bold text-rose-700">{statusCount["rejeté"]}</p>
           </div>
         </div>
 
