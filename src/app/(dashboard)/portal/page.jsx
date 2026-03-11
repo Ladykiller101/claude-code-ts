@@ -362,7 +362,7 @@ export default function ClientPortal() {
                     </div>
                     <h4 className="text-white font-medium mb-2">{doc.name}</h4>
                     <p className="text-gray-400 text-sm mb-4">
-                      {doc.created_date && format(new Date(doc.created_date), "d MMM yyyy", { locale: fr })}
+                      {doc.created_at && format(new Date(doc.created_at), "d MMM yyyy", { locale: fr })}
                     </p>
                     <div className="flex gap-2">
                       {doc.file_url && (

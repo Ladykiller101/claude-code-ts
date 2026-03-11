@@ -18,7 +18,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Upload, FileText, X, Loader2 } from "lucide-react";
-import { uploadFile } from "@/lib/upload";
 
 export default function DocumentUpload({ clients, open, onClose, onSave }) {
   const [file, setFile] = useState(null);
@@ -50,20 +49,38 @@ export default function DocumentUpload({ clients, open, onClose, onSave }) {
     }
   }, [formData.name]);
 
+  const [error, setError] = useState("");
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file || !formData.client_id) return;
 
     setUploading(true);
+    setError("");
     try {
-      const file_url = await uploadFile(file, formData.client_id);
-      await onSave({
-        ...formData,
-        file_url,
-        status: "en_attente",
+      const body = new FormData();
+      body.append("file", file);
+      body.append("client_id", formData.client_id);
+      body.append("name", formData.name || file.name);
+      body.append("category", formData.category);
+
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body,
       });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Erreur lors de l'upload");
+        return;
+      }
+
       setFile(null);
       setFormData({ name: "", client_id: "", category: "autre" });
+      onSave(data.document);
+    } catch {
+      setError("Erreur serveur, veuillez reessayer");
     } finally {
       setUploading(false);
     }
@@ -76,20 +93,25 @@ export default function DocumentUpload({ clients, open, onClose, onSave }) {
           <DialogTitle>Uploader un document</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {error && (
+            <div className="bg-red-900/30 border border-red-700/50 text-red-300 rounded-lg px-4 py-3 text-sm">
+              {error}
+            </div>
+          )}
           {/* Drop Zone */}
           <div
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-              file ? "border-emerald-300 bg-emerald-50" : "border-gray-200 hover:border-[#4f46e5]"
+              file ? "border-emerald-500 bg-emerald-900/20" : "border-gray-600 hover:border-indigo-500"
             }`}
           >
             {file ? (
               <div className="flex items-center justify-center gap-3">
-                <FileText className="w-8 h-8 text-emerald-600" />
+                <FileText className="w-8 h-8 text-emerald-400" />
                 <div className="text-left">
-                  <p className="font-medium text-gray-900">{file.name}</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="font-medium text-white">{file.name}</p>
+                  <p className="text-sm text-gray-400">
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>

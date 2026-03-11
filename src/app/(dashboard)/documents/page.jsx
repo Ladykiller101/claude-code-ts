@@ -205,7 +205,7 @@ export default function Documents() {
       </div>
 
       {/* Documents Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-[#0f0f1a] rounded-2xl border border-gray-800 overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-4">
             {[...Array(5)].map((_, i) => (
@@ -215,7 +215,7 @@ export default function Documents() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50/50">
+              <TableRow className="bg-gray-900/50">
                 <TableHead>Document</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Catégorie</TableHead>
@@ -232,14 +232,14 @@ export default function Documents() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="group hover:bg-gray-50/50"
+                    className="group hover:bg-gray-800/50"
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center">
                           <FileText className="w-5 h-5 text-gray-500" />
                         </div>
-                        <span className="font-medium text-gray-900">{doc.name}</span>
+                        <span className="font-medium text-white">{doc.name}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-gray-600">
@@ -257,7 +257,7 @@ export default function Documents() {
                       </div>
                     </TableCell>
                     <TableCell className="text-gray-500">
-                      {format(new Date(doc.created_date), "d MMM yyyy", { locale: fr })}
+                      {format(new Date(doc.created_at), "d MMM yyyy", { locale: fr })}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -323,7 +323,7 @@ export default function Documents() {
         {!isLoading && filteredDocuments.length === 0 && (
           <div className="text-center py-12">
             <FileText className="w-12 h-12 text-gray-300 mx-auto" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">Aucun document</h3>
+            <h3 className="mt-4 text-lg font-medium text-white">Aucun document</h3>
             <p className="text-gray-500 mt-1">Uploadez votre premier document</p>
           </div>
         )}
@@ -333,7 +333,10 @@ export default function Documents() {
         clients={clients}
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
-        onSave={(data) => createMutation.mutate(data)}
+        onSave={() => {
+          queryClient.invalidateQueries({ queryKey: ["documents"] });
+          setUploadOpen(false);
+        }}
       />
 
       {ocrDocument && (
