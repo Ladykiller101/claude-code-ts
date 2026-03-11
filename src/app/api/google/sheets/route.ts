@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing 'id' parameter (spreadsheet ID)" }, { status: 400 });
     }
 
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
 
     const response = await sheets.spreadsheets.values.update({
       spreadsheetId,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDriveClient } from "@/lib/google";
+import { Readable } from "stream";
 
 // GET /api/google/drive — List files or search
 export async function GET(request: NextRequest) {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     const pageToken = searchParams.get("pageToken") || undefined;
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
-    const drive = getDriveClient();
+    const drive = await getDriveClient();
 
     let q = "trashed = false";
     if (folderId) {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const drive = getDriveClient();
+    const drive = await getDriveClient();
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const fileMetadata: Record<string, unknown> = {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
       requestBody: fileMetadata,
       media: {
         mimeType: file.type,
-        body: require("stream").Readable.from(buffer),
+        body: Readable.from(buffer),
       },
       fields: "id, name, mimeType, webViewLink",
     });

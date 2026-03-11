@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const timeMin = searchParams.get("timeMin") || new Date().toISOString();
     const timeMax = searchParams.get("timeMax") || undefined;
 
-    const calendar = getCalendarClient();
+    const calendar = await getCalendarClient();
 
     const response = await calendar.events.list({
       calendarId,
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const { summary, description, start, end, attendees, calendarId } = body as {
       summary: string;
       description?: string;
-      start: string; // ISO 8601
+      start: string;
       end: string;
       attendees?: string[];
       calendarId?: string;
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const calendar = getCalendarClient();
+    const calendar = await getCalendarClient();
 
     const response = await calendar.events.insert({
       calendarId: calendarId || "primary",

@@ -33,8 +33,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/webhooks") ||
-    pathname.startsWith("/api/google")
+    pathname.startsWith("/api/webhooks")
   ) {
     return supabaseResponse;
   }
