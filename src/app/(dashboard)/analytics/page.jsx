@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { motion } from "framer-motion";
@@ -14,12 +14,15 @@ import {
   Activity,
   Sparkles,
   Target,
-  Zap
+  Zap,
+  Users
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format, subMonths, startOfMonth } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function Analytics() {
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
@@ -39,7 +42,7 @@ export default function Analytics() {
 
   const isLoading = loadingInvoices || loadingClients || loadingTasks;
 
-  // Calculate metrics
+  // Calculate metrics from real data
   const totalRevenue = invoices
     .filter(inv => inv.category === "vente")
     .reduce((sum, inv) => sum + (inv.amount_ttc || 0), 0);
@@ -51,50 +54,119 @@ export default function Analytics() {
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
 
-  // AI Insights
-  const aiInsights = [
-    {
-      type: "warning",
-      title: "Trésorerie en baisse",
-      description: "Vos dépenses ont augmenté de 15% ce mois-ci par rapport au mois dernier",
-      impact: "Moyenne",
-      icon: AlertCircle,
-      color: "text-amber-400"
-    },
-    {
-      type: "success",
-      title: "Performance positive",
-      description: "Votre chiffre d'affaires est en hausse de 8% sur le trimestre",
-      impact: "Élevé",
-      icon: TrendingUp,
-      color: "text-emerald-400"
-    },
-    {
-      type: "info",
-      title: "Opportunité d'optimisation",
-      description: "3 factures fournisseurs offrent des remises pour paiement anticipé",
-      impact: "Faible",
-      icon: Sparkles,
-      color: "text-indigo-400"
+  const activeClientsCount = clients.filter(c => c.status === "actif").length;
+  const newClientsCount = useMemo(() => {
+    const oneMonthAgo = subMonths(new Date(), 1);
+    return clients.filter(c => {
+      const d = new Date(c.created_at || c.created_date);
+      return !isNaN(d.getTime()) && d > oneMonthAgo;
+    }).length;
+  }, [clients]);
+
+  // Real AI Insights computed from data
+  const aiInsights = useMemo(() => {
+    const insights = [];
+    const pendingInvoices = invoices.filter(i => i.status === "à_traiter");
+    const overdueTasks = tasks.filter(t => {
+      if (t.status === "terminée" || !t.due_date) return false;
+      return new Date(t.due_date) < new Date();
+    });
+
+    if (pendingInvoices.length > 0) {
+      const pendingTotal = pendingInvoices.reduce((s, i) => s + (i.amount_ttc || 0), 0);
+      insights.push({
+        type: "warning",
+        title: `${pendingInvoices.length} facture(s) à traiter`,
+        description: `${pendingTotal.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} en attente de traitement`,
+        impact: "Moyenne",
+        icon: AlertCircle,
+        color: "text-amber-400"
+      });
     }
-  ];
 
-  // Revenue by month (last 6 months)
-  const monthlyData = [
-    { month: "Juil", revenue: 12500, expenses: 8200 },
-    { month: "Août", revenue: 15200, expenses: 9100 },
-    { month: "Sept", revenue: 14800, expenses: 8900 },
-    { month: "Oct", revenue: 16500, expenses: 9500 },
-    { month: "Nov", revenue: 18200, expenses: 10200 },
-    { month: "Déc", revenue: 19800, expenses: 11100 },
-  ];
+    if (totalRevenue > 0) {
+      insights.push({
+        type: "success",
+        title: "Chiffre d'affaires",
+        description: `CA total de ${totalRevenue.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} sur les ventes enregistrées`,
+        impact: "Élevé",
+        icon: TrendingUp,
+        color: "text-emerald-400"
+      });
+    }
 
-  // Expense categories
-  const expenseCategories = [
-    { name: "Achats", value: 35, color: "#6366f1" },
-    { name: "Frais généraux", value: 45, color: "#8b5cf6" },
-    { name: "Immobilisations", value: 20, color: "#a78bfa" }
-  ];
+    if (overdueTasks.length > 0) {
+      insights.push({
+        type: "alert",
+        title: `${overdueTasks.length} tâche(s) en retard`,
+        description: "Des tâches ont dépassé leur date d'échéance et nécessitent votre attention",
+        impact: "Élevé",
+        icon: AlertCircle,
+        color: "text-rose-400"
+      });
+    }
+
+    if (totalExpenses > 0) {
+      insights.push({
+        type: "info",
+        title: "Suivi des dépenses",
+        description: `Total des dépenses : ${totalExpenses.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}. Marge nette : ${profitMargin}%`,
+        impact: "Moyenne",
+        icon: Sparkles,
+        color: "text-indigo-400"
+      });
+    }
+
+    if (insights.length === 0) {
+      insights.push({
+        type: "info",
+        title: "Données en cours",
+        description: "Ajoutez des factures et tâches pour voir les insights IA apparaître ici",
+        impact: "—",
+        icon: Sparkles,
+        color: "text-indigo-400"
+      });
+    }
+
+    return insights.slice(0, 3);
+  }, [invoices, tasks, totalRevenue, totalExpenses, profitMargin]);
+
+  // Revenue by month from real invoices (last 6 months)
+  const monthlyData = useMemo(() => {
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = startOfMonth(subMonths(new Date(), i));
+      const monthEnd = startOfMonth(subMonths(new Date(), i - 1));
+      const label = format(monthStart, "MMM", { locale: fr });
+
+      const monthInvoices = invoices.filter(inv => {
+        const d = new Date(inv.invoice_date || inv.created_at || inv.created_date);
+        return !isNaN(d.getTime()) && d >= monthStart && d < monthEnd;
+      });
+
+      const revenue = monthInvoices.filter(i => i.category === "vente").reduce((s, i) => s + (i.amount_ttc || 0), 0);
+      const expenses = monthInvoices.filter(i => i.category !== "vente").reduce((s, i) => s + (i.amount_ttc || 0), 0);
+
+      months.push({ month: label.charAt(0).toUpperCase() + label.slice(1), revenue, expenses });
+    }
+    return months;
+  }, [invoices]);
+
+  // Expense categories from real data
+  const expenseCategories = useMemo(() => {
+    const categories = { achat: 0, "frais_généraux": 0, immobilisation: 0 };
+    invoices.filter(i => i.category !== "vente").forEach(inv => {
+      const cat = inv.category || "achat";
+      if (categories[cat] !== undefined) categories[cat] += (inv.amount_ttc || 0);
+      else categories.achat += (inv.amount_ttc || 0);
+    });
+    const total = Object.values(categories).reduce((s, v) => s + v, 0) || 1;
+    return [
+      { name: "Achats", value: Math.round((categories.achat / total) * 100), color: "#6366f1" },
+      { name: "Frais généraux", value: Math.round((categories["frais_généraux"] / total) * 100), color: "#8b5cf6" },
+      { name: "Immobilisations", value: Math.round((categories.immobilisation / total) * 100), color: "#a78bfa" }
+    ];
+  }, [invoices]);
 
   const COLORS = ["#6366f1", "#8b5cf6", "#a78bfa"];
 
@@ -123,7 +195,7 @@ export default function Analytics() {
           <div>
             <h2 className="text-xl font-semibold text-white">Analyse IA activée</h2>
             <p className="text-purple-100 mt-1">
-              Notre IA surveille en continu vos données pour vous alerter des opportunités et risques
+              Insights générés automatiquement à partir de vos {invoices.length} factures et {tasks.length} tâches
             </p>
           </div>
         </div>
@@ -146,9 +218,8 @@ export default function Analytics() {
                   <p className="text-2xl font-bold text-white mt-1">
                     {totalRevenue.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
                   </p>
-                  <div className="flex items-center gap-1 mt-2 text-emerald-400 text-sm">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>+8.2%</span>
+                  <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">
+                    <span>{invoices.filter(i => i.category === "vente").length} facture(s) de vente</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
@@ -166,9 +237,8 @@ export default function Analytics() {
                   <p className="text-2xl font-bold text-white mt-1">
                     {totalExpenses.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
                   </p>
-                  <div className="flex items-center gap-1 mt-2 text-rose-400 text-sm">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>+15.3%</span>
+                  <div className="flex items-center gap-1 mt-2 text-gray-500 text-sm">
+                    <span>{invoices.filter(i => i.category !== "vente").length} facture(s)</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 bg-rose-500/20 rounded-xl flex items-center justify-center">
@@ -204,11 +274,11 @@ export default function Analytics() {
                 <div>
                   <p className="text-gray-400 text-sm">Clients actifs</p>
                   <p className="text-2xl font-bold text-white mt-1">
-                    {clients.filter(c => c.status === "actif").length}
+                    {activeClientsCount}
                   </p>
                   <div className="flex items-center gap-1 mt-2 text-amber-400 text-sm">
-                    <Zap className="w-4 h-4" />
-                    <span>4 nouveaux</span>
+                    <Users className="w-4 h-4" />
+                    <span>{newClientsCount > 0 ? `${newClientsCount} nouveau(x)` : `${clients.length} total`}</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
@@ -271,6 +341,7 @@ export default function Analytics() {
                 <Tooltip
                   contentStyle={{ backgroundColor: "#1a1a2e", border: "1px solid #333", borderRadius: "8px" }}
                   labelStyle={{ color: "#fff" }}
+                  formatter={(value) => value.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
                 />
                 <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} name="CA" />
