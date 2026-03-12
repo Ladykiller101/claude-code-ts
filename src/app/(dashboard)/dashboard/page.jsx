@@ -50,19 +50,26 @@ export default function Dashboard() {
   const pendingTasks = tasks.filter(t => t.status !== "terminée").length;
   const urgentTasks = tasks.filter(t => t.priority === "urgente" && t.status !== "terminée");
 
+  // Safe date parsing helper
+  const safeDate = (d) => {
+    if (!d) return new Date(0);
+    const parsed = new Date(d);
+    return isNaN(parsed.getTime()) ? new Date(0) : parsed;
+  };
+
   // Tâches triées par priorité et date
   const sortedTasks = [...tasks]
     .filter(t => t.status !== "terminée")
     .sort((a, b) => {
       const priorityOrder = { urgente: 0, haute: 1, moyenne: 2, basse: 3 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority] ||
-             new Date(a.due_date) - new Date(b.due_date);
+      return (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9) ||
+             safeDate(a.due_date) - safeDate(b.due_date);
     });
 
   // Échéances triées par date
   const sortedDeadlines = [...deadlines]
     .filter(d => d.status !== "terminée")
-    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+    .sort((a, b) => safeDate(a.due_date) - safeDate(b.due_date));
 
   if (error) {
     return (

@@ -29,7 +29,10 @@ export default function DocumentsStatus({ documents }) {
   // Monthly upload trend (last 6 months)
   const monthlyUploads = {};
   documents.forEach(doc => {
-    const date = new Date(doc.created_date);
+    const raw = doc.created_at || doc.created_date;
+    if (!raw) return;
+    const date = new Date(raw);
+    if (isNaN(date.getTime())) return;
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     const monthLabel = date.toLocaleDateString('fr-FR', { month: 'short' });
 

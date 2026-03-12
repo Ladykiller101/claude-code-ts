@@ -24,7 +24,10 @@ export default function ActivityMiniCharts({ documents, tasks, invoices }) {
   // Documents uploaded per day
   const documentsData = last7Days.map((day) => {
     const count = documents.filter((doc) => {
-      const docDate = new Date(doc.created_date);
+      const raw = doc.created_at || doc.created_date;
+      if (!raw) return false;
+      const docDate = new Date(raw);
+      if (isNaN(docDate.getTime())) return false;
       return format(docDate, "yyyy-MM-dd") === format(day.date, "yyyy-MM-dd");
     }).length;
     return { label: day.label, value: count };
@@ -34,7 +37,10 @@ export default function ActivityMiniCharts({ documents, tasks, invoices }) {
   const tasksData = last7Days.map((day) => {
     const count = tasks.filter((task) => {
       if (task.status !== "terminée") return false;
-      const taskDate = new Date(task.updated_date || task.created_date);
+      const raw = task.updated_at || task.updated_date || task.created_at || task.created_date;
+      if (!raw) return false;
+      const taskDate = new Date(raw);
+      if (isNaN(taskDate.getTime())) return false;
       return format(taskDate, "yyyy-MM-dd") === format(day.date, "yyyy-MM-dd");
     }).length;
     return { label: day.label, value: count };
@@ -43,7 +49,10 @@ export default function ActivityMiniCharts({ documents, tasks, invoices }) {
   // Invoices processed per day
   const invoicesData = last7Days.map((day) => {
     const count = invoices.filter((inv) => {
-      const invDate = new Date(inv.created_date);
+      const raw = inv.created_at || inv.created_date;
+      if (!raw) return false;
+      const invDate = new Date(raw);
+      if (isNaN(invDate.getTime())) return false;
       return format(invDate, "yyyy-MM-dd") === format(day.date, "yyyy-MM-dd");
     }).length;
     return { label: day.label, value: count };

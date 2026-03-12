@@ -13,12 +13,22 @@ export default function DeadlinesList({ deadlines, clients }) {
   };
 
   const getDaysRemaining = (date) => {
-    const days = differenceInDays(new Date(date), new Date());
+    if (!date) return { text: "—", urgent: false };
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return { text: "—", urgent: false };
+    const days = differenceInDays(d, new Date());
     if (days < 0) return { text: "En retard", urgent: true };
     if (days === 0) return { text: "Aujourd'hui", urgent: true };
     if (days === 1) return { text: "Demain", urgent: true };
     if (days <= 7) return { text: `${days} jours`, urgent: true };
     return { text: `${days} jours`, urgent: false };
+  };
+
+  const safeFormatDate = (date, fmt) => {
+    if (!date) return "—";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, fmt, { locale: fr });
   };
 
   const getTypeColor = (type) => {
@@ -70,7 +80,7 @@ export default function DeadlinesList({ deadlines, clients }) {
                       {remaining.text}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {format(new Date(deadline.due_date), "d MMM yyyy", { locale: fr })}
+                      {safeFormatDate(deadline.due_date, "d MMM yyyy")}
                     </p>
                   </div>
                 </div>

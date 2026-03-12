@@ -24,7 +24,9 @@ export default function TasksList({ tasks, clients }) {
   };
 
   const formatDueDate = (date) => {
+    if (!date) return "—";
     const d = new Date(date);
+    if (isNaN(d.getTime())) return "—";
     if (isToday(d)) return "Aujourd'hui";
     if (isTomorrow(d)) return "Demain";
     return format(d, "d MMM", { locale: fr });
@@ -63,7 +65,7 @@ export default function TasksList({ tasks, clients }) {
                       {getClientName(task.client_id)}
                     </span>
                     <span className={`flex items-center gap-1 ${
-                      isPast(new Date(task.due_date)) && task.status !== "terminée"
+                      task.due_date && !isNaN(new Date(task.due_date).getTime()) && isPast(new Date(task.due_date)) && task.status !== "terminée"
                         ? "text-rose-600"
                         : "text-gray-500"
                     }`}>

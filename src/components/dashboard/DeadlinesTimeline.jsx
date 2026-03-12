@@ -7,9 +7,15 @@ import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export default function DeadlinesTimeline({ deadlines }) {
+  const safeDate = (d) => {
+    if (!d) return new Date(0);
+    const parsed = new Date(d);
+    return isNaN(parsed.getTime()) ? new Date(0) : parsed;
+  };
+
   const upcomingDeadlines = deadlines
     .filter(d => d.status !== 'terminée')
-    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+    .sort((a, b) => safeDate(a.due_date) - safeDate(b.due_date))
     .slice(0, 8);
 
   const getTypeColor = (type) => {
@@ -26,8 +32,18 @@ export default function DeadlinesTimeline({ deadlines }) {
     return colors[type] || colors.autre;
   };
 
+  const safeFormatDate = (date, fmt) => {
+    if (!date) return "—";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, fmt, { locale: fr });
+  };
+
   const getDaysRemaining = (date) => {
-    const days = differenceInDays(new Date(date), new Date());
+    if (!date) return { text: "—", urgent: false, color: "text-gray-500" };
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return { text: "—", urgent: false, color: "text-gray-500" };
+    const days = differenceInDays(d, new Date());
     if (days < 0) return { text: "En retard", urgent: true, color: "text-rose-600" };
     if (days === 0) return { text: "Aujourd'hui", urgent: true, color: "text-rose-600" };
     if (days === 1) return { text: "Demain", urgent: true, color: "text-amber-600" };
@@ -60,7 +76,7 @@ export default function DeadlinesTimeline({ deadlines }) {
                     {deadline.type === "TVA" ? "TVA" :
                      deadline.type === "IS" ? "IS" :
                      deadline.type === "DSN" ? "DSN" :
-                     format(new Date(deadline.due_date), "d", { locale: fr })}
+                     safeFormatDate(deadline.due_date, "d")}
                   </span>
                 </div>
 
@@ -69,7 +85,7 @@ export default function DeadlinesTimeline({ deadlines }) {
                     {deadline.title}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {format(new Date(deadline.due_date), "EEEE d MMMM", { locale: fr })}
+                    {safeFormatDate(deadline.due_date, "EEEE d MMMM")}
                   </p>
                 </div>
 
