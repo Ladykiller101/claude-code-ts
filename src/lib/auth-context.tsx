@@ -42,7 +42,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (profile) {
       setUser({ ...profile, supabase_user: supabaseUser } as AuthUser);
     } else {
-      // Profile not yet created or RLS blocked — use auth metadata
+      // Profile missing — create it via server endpoint (bypasses RLS)
+      try {
+        const res = await fetch("/api/auth/ensure-profile", { method: "POST" });
+        if (res.ok) {
+          const { profile: created } = await res.json();
+          if (created) {
+            setUser({ ...created, supabase_user: supabaseUser } as AuthUser);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to ensure profile:", e);
+      }
+
+      // Final fallback — use auth metadata (RLS will still block queries)
       setUser({
         id: supabaseUser.id,
         email: supabaseUser.email || "",
