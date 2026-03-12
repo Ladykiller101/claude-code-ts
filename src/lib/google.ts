@@ -1,4 +1,7 @@
-import { google } from "googleapis";
+import { gmail } from "@googleapis/gmail";
+import { drive } from "@googleapis/drive";
+import { sheets } from "@googleapis/sheets";
+import { calendar } from "@googleapis/calendar";
 import { OAuth2Client } from "google-auth-library";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -92,22 +95,22 @@ async function getAuthenticatedClient(): Promise<OAuth2Client> {
 
 export async function getGmailClient() {
   const auth = await getAuthenticatedClient();
-  return google.gmail({ version: "v1", auth });
+  return gmail({ version: "v1", auth });
 }
 
 export async function getDriveClient() {
   const auth = await getAuthenticatedClient();
-  return google.drive({ version: "v3", auth });
+  return drive({ version: "v3", auth });
 }
 
 export async function getSheetsClient() {
   const auth = await getAuthenticatedClient();
-  return google.sheets({ version: "v4", auth });
+  return sheets({ version: "v4", auth });
 }
 
 export async function getCalendarClient() {
   const auth = await getAuthenticatedClient();
-  return google.calendar({ version: "v3", auth });
+  return calendar({ version: "v3", auth });
 }
 
 export async function isGoogleConnected(): Promise<boolean> {
