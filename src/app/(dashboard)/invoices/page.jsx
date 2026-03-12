@@ -44,6 +44,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+const safeFmt = (d, fmt) => { if (!d) return "—"; const p = new Date(d); return isNaN(p.getTime()) ? "—" : format(p, fmt, { locale: fr }); };
+
 export default function Invoices() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -258,9 +260,7 @@ export default function Invoices() {
                         {invoice.invoice_number || "—"}
                       </TableCell>
                       <TableCell className="text-gray-600">
-                        {invoice.invoice_date
-                          ? format(new Date(invoice.invoice_date), "d MMM yyyy", { locale: fr })
-                          : "—"}
+                        {safeFmt(invoice.invoice_date, "d MMM yyyy")}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {invoice.amount_ttc?.toLocaleString("fr-FR", {

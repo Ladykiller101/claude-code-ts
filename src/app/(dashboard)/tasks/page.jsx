@@ -38,6 +38,9 @@ import { format, isPast, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import TaskForm from "@/components/tasks/TaskForm";
 
+const safeDate = (d) => { if (!d) return null; const p = new Date(d); return isNaN(p.getTime()) ? null : p; };
+const safeFmt = (d, fmt) => { const p = safeDate(d); return p ? format(p, fmt, { locale: fr }) : "—"; };
+
 export default function Tasks() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -128,7 +131,7 @@ export default function Tasks() {
     if (a.status !== "terminée" && b.status === "terminée") return -1;
 
     return priorityOrder[a.priority] - priorityOrder[b.priority] ||
-           new Date(a.due_date) - new Date(b.due_date);
+           (safeDate(a.due_date)?.getTime() ?? 0) - (safeDate(b.due_date)?.getTime() ?? 0);
   });
 
   return (
@@ -212,8 +215,9 @@ export default function Tasks() {
         <div className="space-y-3">
           <AnimatePresence>
             {sortedTasks.map((task, index) => {
-              const isOverdue = isPast(new Date(task.due_date)) && task.status !== "terminée";
-              const isDueToday = isToday(new Date(task.due_date));
+              const parsedDue = safeDate(task.due_date);
+              const isOverdue = parsedDue && isPast(parsedDue) && task.status !== "terminée";
+              const isDueToday = parsedDue && isToday(parsedDue);
 
               return (
                 <motion.div
@@ -299,7 +303,7 @@ export default function Tasks() {
                         }`}>
                           <Clock className="w-3.5 h-3.5" />
                           {isOverdue ? "En retard \u2022 " : ""}
-                          {format(new Date(task.due_date), "d MMM yyyy", { locale: fr })}
+                          {safeFmt(task.due_date, "d MMM yyyy")}
                         </span>
                       </div>
                     </div>

@@ -36,6 +36,9 @@ import { format, differenceInDays, isPast } from "date-fns";
 import { fr } from "date-fns/locale";
 import DeadlineForm from "@/components/deadlines/DeadlineForm";
 
+const safeDate = (d) => { if (!d) return null; const p = new Date(d); return isNaN(p.getTime()) ? null : p; };
+const safeFmt = (d, fmt) => { const p = safeDate(d); return p ? format(p, fmt, { locale: fr }) : "—"; };
+
 export default function Deadlines() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -102,7 +105,9 @@ export default function Deadlines() {
       return { text: "Terminé", color: "text-emerald-600", bg: "bg-emerald-50" };
     }
 
-    const days = differenceInDays(new Date(date), new Date());
+    const parsed = safeDate(date);
+    if (!parsed) return { text: "—", color: "text-gray-600", bg: "bg-gray-50" };
+    const days = differenceInDays(parsed, new Date());
 
     if (days < 0) {
       return { text: `${Math.abs(days)}j en retard`, color: "text-rose-600", bg: "bg-rose-50", urgent: true };
@@ -134,7 +139,7 @@ export default function Deadlines() {
   const sortedDeadlines = [...filteredDeadlines].sort((a, b) => {
     if (a.status === "terminée" && b.status !== "terminée") return 1;
     if (a.status !== "terminée" && b.status === "terminée") return -1;
-    return new Date(a.due_date) - new Date(b.due_date);
+    return (safeDate(a.due_date)?.getTime() ?? 0) - (safeDate(b.due_date)?.getTime() ?? 0);
   });
 
   return (
@@ -278,7 +283,7 @@ export default function Deadlines() {
                   </div>
 
                   <p className="text-sm text-gray-400 mt-3">
-                    {format(new Date(deadline.due_date), "EEEE d MMMM yyyy", { locale: fr })}
+                    {safeFmt(deadline.due_date, "EEEE d MMMM yyyy")}
                   </p>
                 </motion.div>
               );

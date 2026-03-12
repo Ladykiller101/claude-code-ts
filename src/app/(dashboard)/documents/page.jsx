@@ -45,6 +45,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import DocumentUpload from "@/components/documents/DocumentUpload";
+
+const safeFmt = (d, fmt) => { if (!d) return "—"; const p = new Date(d); return isNaN(p.getTime()) ? "—" : format(p, fmt, { locale: fr }); };
 import OCRProcessor from "@/components/documents/OCRProcessor";
 
 export default function Documents() {
@@ -257,7 +259,7 @@ export default function Documents() {
                       </div>
                     </TableCell>
                     <TableCell className="text-gray-500">
-                      {format(new Date(doc.created_at), "d MMM yyyy", { locale: fr })}
+                      {safeFmt(doc.created_at, "d MMM yyyy")}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">

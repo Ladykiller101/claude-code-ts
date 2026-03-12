@@ -45,6 +45,8 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAuthorization } from "@/hooks/use-authorization";
+
+const safeFmt = (d, fmt) => { if (!d) return "—"; const p = new Date(d); return isNaN(p.getTime()) ? "—" : format(p, fmt, { locale: fr }); };
 import { useAuth } from "@/lib/auth-context";
 
 // Module components
@@ -263,7 +265,7 @@ export default function ClientPortal() {
                       <div>
                         <p className="text-white font-medium">{deadline.title}</p>
                         <p className="text-gray-400 text-sm">
-                          {format(new Date(deadline.due_date), "d MMMM yyyy", { locale: fr })}
+                          {safeFmt(deadline.due_date, "d MMMM yyyy")}
                         </p>
                       </div>
                       <Badge variant="outline">{deadline.type}</Badge>
@@ -289,7 +291,7 @@ export default function ClientPortal() {
                       <div className="flex-1">
                         <p className="text-white font-medium">{task.title}</p>
                         <p className="text-gray-400 text-sm">
-                          Échéance : {format(new Date(task.due_date), "d MMM", { locale: fr })}
+                          Échéance : {safeFmt(task.due_date, "d MMM")}
                         </p>
                       </div>
                       <Badge className="bg-amber-100 text-amber-700">{task.priority}</Badge>
@@ -372,7 +374,7 @@ export default function ClientPortal() {
                     </div>
                     <h4 className="text-white font-medium mb-2">{doc.name}</h4>
                     <p className="text-gray-400 text-sm mb-4">
-                      {doc.created_at && format(new Date(doc.created_at), "d MMM yyyy", { locale: fr })}
+                      {safeFmt(doc.created_at, "d MMM yyyy")}
                     </p>
                     <div className="flex gap-2">
                       {doc.file_url && (
