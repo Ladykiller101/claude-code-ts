@@ -60,7 +60,7 @@ const formatDate = (dateStr) => {
 export default function HREventList({ events }) {
   const sortedEvents = useMemo(() => {
     return [...events].sort(
-      (a, b) => new Date(b.start_date) - new Date(a.start_date)
+      (a, b) => (new Date(b.start_date || 0).getTime() || 0) - (new Date(a.start_date || 0).getTime() || 0)
     );
   }, [events]);
 

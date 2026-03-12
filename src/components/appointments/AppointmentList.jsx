@@ -39,9 +39,7 @@ const STATUS_BADGES = {
 function AppointmentCard({ appointment, onCancel, onConfirm, onComplete }) {
   const type = TYPE_BADGES[appointment.appointment_type] || TYPE_BADGES.conseil;
   const status = STATUS_BADGES[appointment.status] || STATUS_BADGES.demande;
-  const scheduledDate = appointment.scheduled_date
-    ? new Date(appointment.scheduled_date)
-    : null;
+  const scheduledDate = (() => { if (!appointment.scheduled_date) return null; const d = new Date(appointment.scheduled_date); return isNaN(d.getTime()) ? null : d; })();
   const canCancel =
     appointment.status === "demande" || appointment.status === "confirme";
 

@@ -153,11 +153,7 @@ export default function TicketDetail({ ticket, onBack, currentUser }) {
               )}
               <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Calendar className="w-3 h-3" />
-                {ticket.created_at
-                  ? format(new Date(ticket.created_at), "d MMM yyyy 'a' HH:mm", {
-                      locale: fr,
-                    })
-                  : ""}
+                {(() => { try { return ticket.created_at ? format(new Date(ticket.created_at), "d MMM yyyy 'a' HH:mm", { locale: fr }) : ""; } catch { return ""; } })()}
               </span>
               {ticket.assigned_to && (
                 <span className="flex items-center gap-1 text-xs text-gray-500">
@@ -215,11 +211,7 @@ export default function TicketDetail({ ticket, onBack, currentUser }) {
                       {msg.sender_name || msg.sender_email}
                     </span>
                     <span className="text-xs text-gray-600">
-                      {msg.created_at
-                        ? format(new Date(msg.created_at), "d MMM HH:mm", {
-                            locale: fr,
-                          })
-                        : ""}
+                      {(() => { try { return msg.created_at ? format(new Date(msg.created_at), "d MMM HH:mm", { locale: fr }) : ""; } catch { return ""; } })()}
                     </span>
                   </div>
                   <p className="text-sm text-gray-200 whitespace-pre-wrap">

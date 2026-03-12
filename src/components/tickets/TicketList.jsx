@@ -178,9 +178,7 @@ export default function TicketList({ clientId, onSelectTicket }) {
                   </div>
                 </div>
                 <span className="text-xs text-gray-500 whitespace-nowrap mt-1">
-                  {ticket.created_at
-                    ? format(new Date(ticket.created_at), "d MMM yyyy", { locale: fr })
-                    : ""}
+                  {(() => { try { return ticket.created_at ? format(new Date(ticket.created_at), "d MMM yyyy", { locale: fr }) : ""; } catch { return ""; } })()}
                 </span>
               </div>
             </motion.div>
