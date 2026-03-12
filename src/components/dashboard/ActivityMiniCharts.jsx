@@ -2,7 +2,7 @@
 
 import React from "react";
 import { MiniChart } from "@/components/ui/mini-chart";
-import { subDays, format, startOfWeek, endOfWeek, eachWeekOfInterval, subWeeks } from "date-fns";
+import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export default function ActivityMiniCharts({ documents, tasks, invoices }) {
