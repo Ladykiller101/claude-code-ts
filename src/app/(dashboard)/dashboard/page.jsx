@@ -64,6 +64,29 @@ export default function Dashboard() {
     .filter(d => d.status !== "terminée")
     .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
 
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-white">
+            Tableau de bord - SYGMA Conseils
+          </h1>
+        </div>
+        <div className="bg-red-900/20 border border-red-800/50 rounded-2xl p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-lg font-semibold text-white mb-2">Erreur de chargement</h2>
+          <p className="text-gray-400 mb-4 text-sm">Impossible de charger les données du tableau de bord.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
