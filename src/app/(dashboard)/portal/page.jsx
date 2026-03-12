@@ -96,17 +96,27 @@ export default function ClientPortal() {
     enabled: !!clientId,
   });
 
-  // Filter for current user's data
-  const userDocuments = documents.filter(
-    (doc) => doc.created_by === currentUser?.email || doc.client_id === clientId
-  );
+  // Filter data — firm_admin sees everything, clients see only their data
+  const isFirmUser = role === "firm_admin" || role === "accountant" || role === "payroll_manager";
+
+  const userDocuments = isFirmUser
+    ? documents
+    : documents.filter((doc) => doc.created_by === currentUser?.email || doc.client_id === clientId);
+
   const upcomingDeadlines = deadlines
-    .filter((d) => d.status !== "terminee" && (!d.client_id || d.client_id === clientId))
+    .filter((d) => d.status !== "terminée" && d.status !== "terminee")
+    .filter((d) => isFirmUser || !d.client_id || d.client_id === clientId)
     .slice(0, 5);
-  const userTasks = tasks.filter(
-    (t) => (t.assigned_to === currentUser?.email || t.client_id === clientId) && t.status !== "terminee"
-  );
-  const clientTickets = tickets.filter((t) => t.client_id === clientId);
+
+  const userTasks = isFirmUser
+    ? tasks.filter((t) => t.status !== "terminée" && t.status !== "terminee")
+    : tasks.filter(
+        (t) => (t.assigned_to === currentUser?.email || t.client_id === clientId) && t.status !== "terminée" && t.status !== "terminee"
+      );
+
+  const clientTickets = isFirmUser
+    ? tickets
+    : tickets.filter((t) => t.client_id === clientId);
   const openTicketCount = clientTickets.filter(
     (t) => !["resolu", "ferme"].includes(t.status)
   ).length;
@@ -151,7 +161,7 @@ export default function ClientPortal() {
             Portail Client - SYGMA Conseils
           </h1>
           <p className="text-gray-400 mt-1">
-            Votre espace personnel securise pour tous vos echanges
+            Votre espace personnel sécurisé pour tous vos échanges
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -171,8 +181,8 @@ export default function ClientPortal() {
           <div>
             <p className="text-amber-200 font-medium text-sm">Configuration requise</p>
             <p className="text-amber-300/70 text-sm mt-1">
-              Votre compte n'est pas encore rattache a une entreprise. Contactez votre administrateur
-              pour configurer votre profil (company_id dans les metadonnees utilisateur).
+              Votre compte n'est pas encore rattaché à une entreprise. Contactez votre administrateur
+              pour configurer votre profil (company_id dans les métadonnées utilisateur).
             </p>
           </div>
         </div>
@@ -188,8 +198,8 @@ export default function ClientPortal() {
           Bienvenue, {currentUser?.full_name || "Client"}
         </h2>
         <p className="text-indigo-100 mt-2">
-          Accedez a tous vos documents, echangez avec votre conseiller et suivez
-          vos echeances en un seul endroit.
+          Accédez à tous vos documents, échangez avec votre conseiller et suivez
+          vos échéances en un seul endroit.
         </p>
       </motion.div>
 
@@ -241,12 +251,12 @@ export default function ClientPortal() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Clock className="w-5 h-5 text-amber-400" />
-                  Prochaines echeances
+                  Prochaines échéances
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {upcomingDeadlines.length === 0 ? (
-                  <p className="text-gray-400 text-sm">Aucune echeance a venir</p>
+                  <p className="text-gray-400 text-sm">Aucune échéance à venir</p>
                 ) : (
                   upcomingDeadlines.map((deadline) => (
                     <div key={deadline.id} className="flex items-center justify-between p-3 bg-[#1a1a2e] rounded-lg">
@@ -267,19 +277,19 @@ export default function ClientPortal() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-emerald-400" />
-                  Mes taches
+                  Mes tâches
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {userTasks.length === 0 ? (
-                  <p className="text-gray-400 text-sm">Aucune tache assignee</p>
+                  <p className="text-gray-400 text-sm">Aucune tâche assignée</p>
                 ) : (
                   userTasks.slice(0, 5).map((task) => (
                     <div key={task.id} className="flex items-center gap-3 p-3 bg-[#1a1a2e] rounded-lg">
                       <div className="flex-1">
                         <p className="text-white font-medium">{task.title}</p>
                         <p className="text-gray-400 text-sm">
-                          Echeance: {format(new Date(task.due_date), "d MMM", { locale: fr })}
+                          Échéance : {format(new Date(task.due_date), "d MMM", { locale: fr })}
                         </p>
                       </div>
                       <Badge className="bg-amber-100 text-amber-700">{task.priority}</Badge>
@@ -306,7 +316,7 @@ export default function ClientPortal() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Echeances</p>
+                    <p className="text-gray-400 text-sm">Échéances</p>
                     <p className="text-2xl font-bold text-white mt-1">{upcomingDeadlines.length}</p>
                   </div>
                   <Clock className="w-8 h-8 text-amber-400" />
@@ -317,7 +327,7 @@ export default function ClientPortal() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Taches actives</p>
+                    <p className="text-gray-400 text-sm">Tâches actives</p>
                     <p className="text-2xl font-bold text-white mt-1">{userTasks.length}</p>
                   </div>
                   <CheckCircle className="w-8 h-8 text-emerald-400" />
@@ -344,7 +354,7 @@ export default function ClientPortal() {
             <h3 className="text-lg font-semibold text-white">Mes documents</h3>
             <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => setShowUpload(true)}>
               <Upload className="w-4 h-4 mr-2" />
-              Televerser
+              Téléverser
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -390,7 +400,7 @@ export default function ClientPortal() {
                               a.click();
                             }}
                           >
-                            <Download className="w-4 h-4 mr-1" /> Telecharger
+                            <Download className="w-4 h-4 mr-1" /> Télécharger
                           </Button>
                         </>
                       )}
@@ -467,7 +477,7 @@ export default function ClientPortal() {
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <PenTool className="w-5 h-5 text-purple-400" />
-                Signature electronique
+                Signature électronique
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -477,7 +487,7 @@ export default function ClientPortal() {
                   Aucun document a signer
                 </h3>
                 <p className="text-gray-400">
-                  Les documents necessitant votre signature apparaitront ici
+                  Les documents nécessitant votre signature apparaîtront ici
                 </p>
               </div>
             </CardContent>
@@ -527,7 +537,7 @@ export default function ClientPortal() {
       <Dialog open={showUpload} onOpenChange={setShowUpload}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Televerser un document</DialogTitle>
+            <DialogTitle>Téléverser un document</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleUploadSubmit} className="space-y-4 mt-4">
             <div
@@ -555,7 +565,7 @@ export default function ClientPortal() {
               ) : (
                 <>
                   <Upload className="w-10 h-10 text-gray-500 mx-auto" />
-                  <p className="mt-3 text-gray-400">Glissez-deposez votre fichier ici</p>
+                  <p className="mt-3 text-gray-400">Glissez-déposez votre fichier ici</p>
                   <p className="text-sm text-gray-500 mt-1">ou</p>
                   <label className="mt-3 inline-block">
                     <span className="px-4 py-2 bg-indigo-600 text-white rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors text-sm">
@@ -587,7 +597,7 @@ export default function ClientPortal() {
             </div>
 
             <div>
-              <Label className="text-gray-300">Categorie</Label>
+              <Label className="text-gray-300">Catégorie</Label>
               <Select value={uploadCategory} onValueChange={setUploadCategory}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -595,8 +605,8 @@ export default function ClientPortal() {
                   <SelectItem value="devis">Devis</SelectItem>
                   <SelectItem value="contrat">Contrat</SelectItem>
                   <SelectItem value="bulletin_paie">Bulletin de paie</SelectItem>
-                  <SelectItem value="declaration_fiscale">Declaration fiscale</SelectItem>
-                  <SelectItem value="releve_bancaire">Releve bancaire</SelectItem>
+                  <SelectItem value="declaration_fiscale">Déclaration fiscale</SelectItem>
+                  <SelectItem value="releve_bancaire">Relevé bancaire</SelectItem>
                   <SelectItem value="autre">Autre</SelectItem>
                 </SelectContent>
               </Select>
@@ -608,7 +618,7 @@ export default function ClientPortal() {
                 {uploading ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Upload en cours...</>
                 ) : (
-                  "Televerser"
+                  "Téléverser"
                 )}
               </Button>
             </div>
