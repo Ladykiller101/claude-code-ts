@@ -29,16 +29,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async (supabaseUser: User) => {
     const supabase = createClient();
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", supabaseUser.id)
       .single();
 
+    if (error) {
+      console.warn("Profile fetch error (using fallback):", error.message);
+    }
+
     if (profile) {
       setUser({ ...profile, supabase_user: supabaseUser } as AuthUser);
     } else {
-      // Profile not yet created (trigger may be delayed)
+      // Profile not yet created or RLS blocked — use auth metadata
       setUser({
         id: supabaseUser.id,
         email: supabaseUser.email || "",
@@ -56,27 +60,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient();
 
+    // Safety timeout — never stay loading more than 5s
+    const timeout = setTimeout(() => {
+      setIsLoading((prev) => {
+        if (prev) console.warn("Auth loading timeout — forcing render");
+        return false;
+      });
+    }, 5000);
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        fetchProfile(session.user);
+        fetchProfile(session.user).catch(console.error);
       }
+      setIsLoading(false);
+    }).catch((err) => {
+      console.error("Auth session error:", err);
       setIsLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        if (session?.user) {
-          await fetchProfile(session.user);
-        } else {
-          setUser(null);
+        try {
+          if (session?.user) {
+            await fetchProfile(session.user);
+          } else {
+            setUser(null);
+          }
+        } catch (err) {
+          console.error("Auth state change error:", err);
         }
         setIsLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [fetchProfile]);
 
   const signOut = async () => {
