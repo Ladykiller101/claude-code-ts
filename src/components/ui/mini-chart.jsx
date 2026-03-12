@@ -1,12 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
+const COLOR_MAP = {
+  emerald: { base: "#34d399", light: "#6ee7b7", lighter: "#a7f3d0", dark: "#10b981" },
+  blue: { base: "#60a5fa", light: "#93c5fd", lighter: "#bfdbfe", dark: "#3b82f6" },
+  indigo: { base: "#818cf8", light: "#a5b4fc", lighter: "#c7d2fe", dark: "#6366f1" },
+  amber: { base: "#fbbf24", light: "#fcd34d", lighter: "#fde68a", dark: "#f59e0b" },
+  rose: { base: "#fb7185", light: "#fda4af", lighter: "#fecdd3", dark: "#f43f5e" },
+};
+
 export function MiniChart({ data, title, color = "emerald" }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [displayValue, setDisplayValue] = useState(null);
   const [isHovering, setIsHovering] = useState(false);
   const containerRef = useRef(null);
   const maxValue = Math.max(...data.map((d) => d.value), 1);
+  const colors = COLOR_MAP[color] || COLOR_MAP.emerald;
 
   useEffect(() => {
     if (hoveredIndex !== null) {
@@ -23,7 +32,7 @@ export function MiniChart({ data, title, color = "emerald" }) {
     }, 150);
   };
 
-  const colorClasses = {
+  const dotColorClass = {
     emerald: "bg-emerald-500",
     blue: "bg-blue-500",
     indigo: "bg-indigo-500",
@@ -41,7 +50,7 @@ export function MiniChart({ data, title, color = "emerald" }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <div className={cn("w-2 h-2 rounded-full animate-pulse", colorClasses[color])} />
+          <div className={cn("w-2 h-2 rounded-full animate-pulse", dotColorClass[color])} />
           <span className="text-xs font-medium text-gray-400 tracking-wide uppercase">{title}</span>
         </div>
         <div className="relative h-7 flex items-center">
@@ -59,39 +68,33 @@ export function MiniChart({ data, title, color = "emerald" }) {
       {/* Chart */}
       <div className="flex items-end gap-2 h-24">
         {data.map((item, index) => {
-          const heightPx = (item.value / maxValue) * 96;
+          const heightPx = Math.max((item.value / maxValue) * 96, item.value > 0 ? 4 : 0);
           const isHovered = hoveredIndex === index;
           const isAnyHovered = hoveredIndex !== null;
           const isNeighbor = hoveredIndex !== null && (index === hoveredIndex - 1 || index === hoveredIndex + 1);
 
+          const barColor = isHovered
+            ? colors.dark
+            : isNeighbor
+            ? colors.base
+            : isAnyHovered
+            ? colors.light
+            : colors.base;
+
           return (
             <div
-              key={item.label}
+              key={`${item.label}-${index}`}
               className="relative flex-1 flex flex-col items-center justify-end h-full"
               onMouseEnter={() => setHoveredIndex(index)}
             >
               {/* Bar */}
               <div
-                className={cn(
-                  "w-full rounded-full cursor-pointer transition-all duration-300 ease-out origin-bottom",
-                  isHovered
-                    ? `bg-${color}-500`
-                    : isNeighbor
-                    ? `bg-${color}-300`
-                    : isAnyHovered
-                    ? `bg-${color}-200`
-                    : `bg-${color}-300 group-hover:bg-${color}-400`
-                )}
+                className="w-full rounded-full cursor-pointer transition-all duration-300 ease-out origin-bottom"
                 style={{
                   height: `${heightPx}px`,
+                  backgroundColor: barColor,
                   transform: isHovered ? "scaleX(1.15) scaleY(1.02)" : isNeighbor ? "scaleX(1.05)" : "scaleX(1)",
-                  backgroundColor: isHovered 
-                    ? `var(--${color}-500)` 
-                    : isNeighbor 
-                    ? `var(--${color}-300)` 
-                    : isAnyHovered 
-                    ? `var(--${color}-200)` 
-                    : undefined,
+                  opacity: isAnyHovered && !isHovered && !isNeighbor ? 0.5 : 1,
                 }}
               />
 
