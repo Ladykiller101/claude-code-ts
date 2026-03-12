@@ -2,7 +2,6 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { db } from "@/lib/db";
 import { motion } from "framer-motion";
 import {
   Users,
@@ -27,33 +26,23 @@ import DocumentsStatus from "@/components/dashboard/DocumentsStatus";
 import ActivityMiniCharts from "@/components/dashboard/ActivityMiniCharts";
 import { Skeleton } from "@/components/ui/skeleton";
 
+async function fetchDashboardData() {
+  const res = await fetch("/api/dashboard/stats");
+  if (!res.ok) throw new Error("Failed to fetch dashboard data");
+  return res.json();
+}
+
 export default function Dashboard() {
-  const { data: clients = [], isLoading: loadingClients } = useQuery({
-    queryKey: ["clients"],
-    queryFn: () => db.clients.list(),
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["dashboard-data"],
+    queryFn: fetchDashboardData,
   });
 
-  const { data: documents = [], isLoading: loadingDocs } = useQuery({
-    queryKey: ["documents"],
-    queryFn: () => db.documents.list(),
-  });
-
-  const { data: tasks = [], isLoading: loadingTasks } = useQuery({
-    queryKey: ["tasks"],
-    queryFn: () => db.tasks.list(),
-  });
-
-  const { data: deadlines = [], isLoading: loadingDeadlines } = useQuery({
-    queryKey: ["deadlines"],
-    queryFn: () => db.deadlines.list(),
-  });
-
-  const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
-    queryKey: ["invoices"],
-    queryFn: () => db.invoices.list(),
-  });
-
-  const isLoading = loadingClients || loadingDocs || loadingTasks || loadingDeadlines || loadingInvoices;
+  const clients = data?.clients ?? [];
+  const documents = data?.documents ?? [];
+  const tasks = data?.tasks ?? [];
+  const deadlines = data?.deadlines ?? [];
+  const invoices = data?.invoices ?? [];
 
   // Calculs pour les stats
   const activeClients = clients.filter(c => c.status === "actif").length;
