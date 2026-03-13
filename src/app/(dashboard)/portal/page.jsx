@@ -194,7 +194,8 @@ export default function ClientPortal() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 lg:p-8 shadow-xl shadow-indigo-500/20"
+        className="rounded-2xl p-6 lg:p-8 shadow-xl shadow-purple-500/20"
+        style={{ background: "linear-gradient(135deg, #7c3aed, #c026d3, #a855f7)" }}
       >
         <h2 className="text-xl font-semibold text-white">
           Bienvenue, {currentUser?.full_name || "Client"}
@@ -206,16 +207,16 @@ export default function ClientPortal() {
       </motion.div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-[#14141f] border border-gray-800 flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-indigo-600 gap-1.5">
+        <TabsList className="bg-[#13131a] border border-[#1e1e2e] flex-wrap h-auto gap-1 p-1">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-purple-600 gap-1.5">
             <Home className="w-4 h-4" />
             Vue d'ensemble
           </TabsTrigger>
-          <TabsTrigger value="documents" className="data-[state=active]:bg-indigo-600 gap-1.5">
+          <TabsTrigger value="documents" className="data-[state=active]:bg-purple-600 gap-1.5">
             <FileText className="w-4 h-4" />
             Documents
           </TabsTrigger>
-          <TabsTrigger value="messages" className="data-[state=active]:bg-indigo-600 gap-1.5">
+          <TabsTrigger value="messages" className="data-[state=active]:bg-purple-600 gap-1.5">
             <MessageSquare className="w-4 h-4" />
             Messages
             {openTicketCount > 0 && (
@@ -225,22 +226,22 @@ export default function ClientPortal() {
             )}
           </TabsTrigger>
           {can("manage_employees") && (
-            <TabsTrigger value="hr" className="data-[state=active]:bg-indigo-600 gap-1.5">
+            <TabsTrigger value="hr" className="data-[state=active]:bg-purple-600 gap-1.5">
               <Users className="w-4 h-4" />
               RH
             </TabsTrigger>
           )}
-          <TabsTrigger value="appointments" className="data-[state=active]:bg-indigo-600 gap-1.5">
+          <TabsTrigger value="appointments" className="data-[state=active]:bg-purple-600 gap-1.5">
             <Calendar className="w-4 h-4" />
             Rendez-vous
           </TabsTrigger>
           {can("use_chatbot") && (
-            <TabsTrigger value="chatbot" className="data-[state=active]:bg-indigo-600 gap-1.5">
+            <TabsTrigger value="chatbot" className="data-[state=active]:bg-purple-600 gap-1.5">
               <Bot className="w-4 h-4" />
-              Assistant Juridique
+              Assistant IA 24/7
             </TabsTrigger>
           )}
-          <TabsTrigger value="signatures" className="data-[state=active]:bg-indigo-600 gap-1.5">
+          <TabsTrigger value="signatures" className="data-[state=active]:bg-purple-600 gap-1.5">
             <PenTool className="w-4 h-4" />
             Signatures
           </TabsTrigger>
@@ -249,7 +250,7 @@ export default function ClientPortal() {
         {/* -- Overview Tab -- */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-[#14141f] border-gray-800">
+            <Card className="bg-[#13131a] border-[#1e1e2e]">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Clock className="w-5 h-5 text-amber-400" />
@@ -268,14 +269,16 @@ export default function ClientPortal() {
                           {safeFmt(deadline.due_date, "d MMMM yyyy")}
                         </p>
                       </div>
-                      <Badge variant="outline">{deadline.type}</Badge>
+                      <span className="border border-[#2a2a3e] text-[#6a6a8a] text-xs px-2 py-0.5 rounded">
+                        {deadline.type || deadline.category}
+                      </span>
                     </div>
                   ))
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-[#14141f] border-gray-800">
+            <Card className="bg-[#13131a] border-[#1e1e2e]">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-emerald-400" />
@@ -294,7 +297,17 @@ export default function ClientPortal() {
                           Échéance : {safeFmt(task.due_date, "d MMM")}
                         </p>
                       </div>
-                      <Badge className="bg-amber-100 text-amber-700">{task.priority}</Badge>
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                        task.status === "terminée" || task.status === "terminee" || task.status === "DONE"
+                          ? "bg-emerald-900/40 text-emerald-400 border border-emerald-800"
+                          : task.status === "en_cours" || task.status === "IN_PROGRESS"
+                          ? "bg-amber-900/40 text-amber-400 border border-amber-800"
+                          : "bg-gray-800/40 text-gray-400 border border-gray-700"
+                      }`}>
+                        {task.status === "en_cours" || task.status === "IN_PROGRESS" ? "En cours"
+                          : task.status === "terminée" || task.status === "terminee" || task.status === "DONE" ? "Terminé"
+                          : "À faire"}
+                      </span>
                     </div>
                   ))
                 )}
@@ -303,7 +316,7 @@ export default function ClientPortal() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <Card className="bg-[#14141f] border-gray-800">
+            <Card className="bg-[#13131a] border-[#1e1e2e]">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -314,7 +327,7 @@ export default function ClientPortal() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-[#14141f] border-gray-800">
+            <Card className="bg-[#13131a] border-[#1e1e2e]">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -325,7 +338,7 @@ export default function ClientPortal() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-[#14141f] border-gray-800">
+            <Card className="bg-[#13131a] border-[#1e1e2e]">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -336,7 +349,7 @@ export default function ClientPortal() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-[#14141f] border-gray-800">
+            <Card className="bg-[#13131a] border-[#1e1e2e]">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -354,7 +367,7 @@ export default function ClientPortal() {
         <TabsContent value="documents" className="space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold text-white">Mes documents</h3>
-            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => setShowUpload(true)}>
+            <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => setShowUpload(true)}>
               <Upload className="w-4 h-4 mr-2" />
               Téléverser
             </Button>
@@ -362,15 +375,17 @@ export default function ClientPortal() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {userDocuments.length === 0 ? (
               <p className="text-gray-400 col-span-full text-center py-8">
-                Aucun document pour le moment
+                Aucun document disponible
               </p>
             ) : (
               userDocuments.map((doc) => (
-                <Card key={doc.id} className="bg-[#14141f] border-gray-800 hover:border-indigo-500 transition-colors">
+                <Card key={doc.id} className="bg-[#13131a] border-[#1e1e2e] hover:border-indigo-500 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <FileText className="w-10 h-10 text-indigo-400" />
-                      <Badge variant="outline">{doc.category}</Badge>
+                      <span className="border border-[#2a2a3e] text-[#6a6a8a] text-xs px-2 py-0.5 rounded">
+                        {doc.category}
+                      </span>
                     </div>
                     <h4 className="text-white font-medium mb-2">{doc.name}</h4>
                     <p className="text-gray-400 text-sm mb-4">
@@ -428,7 +443,7 @@ export default function ClientPortal() {
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-semibold text-white">Mes tickets</h3>
                   <Button
-                    className="bg-indigo-600 hover:bg-indigo-700"
+                    className="bg-purple-600 hover:bg-purple-700"
                     onClick={() => setShowTicketForm(true)}
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
@@ -463,7 +478,7 @@ export default function ClientPortal() {
         {/* -- Chatbot Tab -- */}
         {can("use_chatbot") && (
           <TabsContent value="chatbot" className="space-y-6">
-            <ErrorBoundary title="Erreur -- Assistant" message="L'assistant juridique n'a pas pu se charger.">
+            <ErrorBoundary title="Erreur -- Assistant" message="L'assistant IA n'a pas pu se charger.">
               <LegalChatbot
                 clientId={clientId}
                 currentUser={currentUser}
@@ -475,7 +490,7 @@ export default function ClientPortal() {
 
         {/* -- Signatures Tab -- */}
         <TabsContent value="signatures" className="space-y-6">
-          <Card className="bg-[#14141f] border-gray-800">
+          <Card className="bg-[#13131a] border-[#1e1e2e]">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <PenTool className="w-5 h-5 text-purple-400" />
@@ -486,7 +501,7 @@ export default function ClientPortal() {
               <div className="text-center py-12">
                 <PenTool className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-white mb-2">
-                  Aucun document a signer
+                  Aucune signature en attente
                 </h3>
                 <p className="text-gray-400">
                   Les documents nécessitant votre signature apparaîtront ici
@@ -570,7 +585,7 @@ export default function ClientPortal() {
                   <p className="mt-3 text-gray-400">Glissez-déposez votre fichier ici</p>
                   <p className="text-sm text-gray-500 mt-1">ou</p>
                   <label className="mt-3 inline-block">
-                    <span className="px-4 py-2 bg-indigo-600 text-white rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors text-sm">
+                    <span className="px-4 py-2 bg-purple-600 text-white rounded-lg cursor-pointer hover:bg-purple-700 transition-colors text-sm">
                       Parcourir
                     </span>
                     <input
@@ -616,7 +631,7 @@ export default function ClientPortal() {
 
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setShowUpload(false)}>Annuler</Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={!uploadFileState || uploading}>
+              <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={!uploadFileState || uploading}>
                 {uploading ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Upload en cours...</>
                 ) : (
