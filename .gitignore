@@ -59,6 +59,9 @@ fin-flow-3f363e37*/
 *.py
 __pycache__/
 data/
+data/.broker-secrets.json
+data/broker-connections.json
+data/trading-controls.json
 dashb
 skema_PhD/
 PhD*/
