@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,9 +30,12 @@ import ClientForm from "@/components/clients/ClientForm";
 
 export default function Clients() {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("tous");
+  const [typeFilter, setTypeFilter] = useState("tous");
   const [formOpen, setFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients"],
@@ -81,18 +85,23 @@ export default function Clients() {
     }
   };
 
-  const filteredClients = clients.filter(
-    (c) =>
+  const clientTypes = ["tous", ...Array.from(new Set(clients.map((c) => c.type).filter(Boolean)))];
+
+  const filteredClients = clients.filter((c) => {
+    const matchesSearch =
       c.company_name?.toLowerCase().includes(search.toLowerCase()) ||
       c.contact_name?.toLowerCase().includes(search.toLowerCase()) ||
-      c.email?.toLowerCase().includes(search.toLowerCase())
-  );
+      c.email?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "tous" || c.status === statusFilter;
+    const matchesType = typeFilter === "tous" || c.type === typeFilter;
+    return matchesSearch && matchesStatus && matchesType;
+  });
 
   const getStatusBadge = (status) => {
     const styles = {
-      actif: "bg-emerald-100 text-emerald-700 border-emerald-200",
-      prospect: "bg-blue-100 text-blue-700 border-blue-200",
-      inactif: "bg-gray-100 text-gray-600 border-gray-200",
+      actif: "bg-emerald-900/40 text-emerald-400 border-emerald-800",
+      prospect: "bg-blue-900/40 text-blue-400 border-blue-800",
+      inactif: "bg-gray-800/40 text-gray-400 border-gray-700",
     };
     return styles[status] || styles.prospect;
   };
@@ -110,23 +119,87 @@ export default function Clients() {
             setEditingClient(null);
             setFormOpen(true);
           }}
-          className="bg-[#1e3a5f] hover:bg-[#2d4a6f]"
+          className="bg-purple-600 hover:bg-purple-700"
         >
           <Plus className="w-4 h-4 mr-2" />
           Nouveau client
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <Input
-          placeholder="Rechercher un client..."
-          className="pl-10"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {/* Search + Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative max-w-md w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Rechercher un client..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Status filter */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {["tous", "actif", "prospect", "inactif"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors capitalize ${
+                statusFilter === s
+                  ? s === "actif"
+                    ? "bg-emerald-900/60 text-emerald-300 border-emerald-700"
+                    : s === "prospect"
+                    ? "bg-blue-900/60 text-blue-300 border-blue-700"
+                    : s === "inactif"
+                    ? "bg-gray-800 text-gray-300 border-gray-600"
+                    : "bg-purple-900/60 text-purple-300 border-purple-700"
+                  : "bg-[#13131a] text-gray-500 border-[#2a2a3e] hover:text-gray-300 hover:border-gray-600"
+              }`}
+            >
+              {s === "tous" ? "Tous" : s}
+              {s !== "tous" && (
+                <span className="ml-1.5 opacity-70">
+                  {clients.filter((c) => c.status === s).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Type filter — only shown if multiple types exist */}
+        {clientTypes.length > 1 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {clientTypes.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTypeFilter(t)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors capitalize ${
+                  typeFilter === t
+                    ? "bg-indigo-900/60 text-indigo-300 border-indigo-700"
+                    : "bg-[#13131a] text-gray-500 border-[#2a2a3e] hover:text-gray-300 hover:border-gray-600"
+                }`}
+              >
+                {t === "tous" ? "Tous types" : t}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Active filter summary */}
+      {(statusFilter !== "tous" || typeFilter !== "tous" || search) && (
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <span>{filteredClients.length} client{filteredClients.length !== 1 ? "s" : ""} trouvé{filteredClients.length !== 1 ? "s" : ""}</span>
+          {(statusFilter !== "tous" || typeFilter !== "tous") && (
+            <button
+              onClick={() => { setStatusFilter("tous"); setTypeFilter("tous"); }}
+              className="text-xs text-purple-400 hover:text-purple-300 underline"
+            >
+              Réinitialiser les filtres
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Clients Grid */}
       {isLoading ? (
@@ -145,7 +218,8 @@ export default function Clients() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-lg hover:shadow-gray-100/50 transition-all group"
+                className="bg-[#13131a] rounded-2xl border border-[#1e1e2e] p-6 hover:border-purple-500/30 transition-all group cursor-pointer"
+                onClick={() => router.push(`/clients/${client.id}`)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -153,24 +227,24 @@ export default function Clients() {
                       {client.company_name?.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{client.company_name}</h3>
-                      <p className="text-sm text-gray-500">{client.contact_name || "—"}</p>
+                      <h3 className="font-semibold text-white hover:text-purple-400 transition-colors">{client.company_name}</h3>
+                      <p className="text-sm text-gray-400">{client.contact_name || "—"}</p>
                     </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(client)}>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(client); }}>
                         <Pencil className="w-4 h-4 mr-2" />
                         Modifier
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-rose-600"
-                        onClick={() => handleDelete(client.id)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(client.id); }}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Supprimer
@@ -180,15 +254,20 @@ export default function Clients() {
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="truncate">{client.email}</span>
-                  </div>
+                  {client.email && (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <span className="truncate">{client.email}</span>
+                    </div>
+                  )}
                   {client.phone && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Phone className="w-4 h-4 text-gray-400" />
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Phone className="w-4 h-4 text-gray-500" />
                       <span>{client.phone}</span>
                     </div>
+                  )}
+                  {client.notes && (
+                    <p className="text-xs text-gray-500 truncate">{client.notes}</p>
                   )}
                 </div>
 
@@ -196,7 +275,11 @@ export default function Clients() {
                   <Badge className={`${getStatusBadge(client.status)} border`}>
                     {client.status}
                   </Badge>
-                  <Badge variant="outline">{client.type}</Badge>
+                  {client.type && (
+                    <span className="border border-[#2a2a3e] text-[#6a6a8a] text-xs px-2 py-0.5 rounded">
+                      {client.type}
+                    </span>
+                  )}
                 </div>
               </motion.div>
             ))}
