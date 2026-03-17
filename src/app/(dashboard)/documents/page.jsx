@@ -274,17 +274,15 @@ export default function Documents() {
                             OCR
                           </Button>
                         )}
-                        {doc.file_url && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                          >
-                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                              <Eye className="w-4 h-4" />
-                            </a>
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          asChild
+                        >
+                          <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer">
+                            <Eye className="w-4 h-4" />
+                          </a>
+                        </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -292,14 +290,12 @@ export default function Documents() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {doc.file_url && (
-                              <DropdownMenuItem asChild>
-                                <a href={doc.file_url} download>
-                                  <Download className="w-4 h-4 mr-2" />
-                                  Télécharger
-                                </a>
-                              </DropdownMenuItem>
-                            )}
+                            <DropdownMenuItem asChild>
+                              <a href={`/api/documents/${doc.id}/download`} download>
+                                <Download className="w-4 h-4 mr-2" />
+                                Télécharger
+                              </a>
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-rose-600"
                               onClick={() => {

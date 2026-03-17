@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { callN8n, N8N_WEBHOOKS } from "@/lib/n8n-client";
-import { uploadFile } from "@/lib/upload";
 import { motion } from "framer-motion";
 import {
   Upload,
@@ -21,7 +20,10 @@ import {
   Home,
   Headset,
   X,
-  Loader2
+  Loader2,
+  HardDrive,
+  RefreshCw,
+  CloudOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,6 +62,7 @@ import LegalChatbot from "@/components/chatbot/LegalChatbot";
 import DataExportButton from "@/components/gdpr/DataExportButton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAuditLog } from "@/hooks/use-audit-log";
+import { useDriveDocuments } from "@/hooks/use-drive-documents";
 
 export default function ClientPortal() {
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -77,10 +80,34 @@ export default function ClientPortal() {
   const { user: currentUser } = useAuth();
   const clientId = currentUser?.company_id;
 
-  const { data: documents = [] } = useQuery({
-    queryKey: ["documents"],
-    queryFn: () => db.documents.list("-created_date"),
-  });
+  // Filter data — firm_admin sees everything, clients see only their data
+  const isFirmUserEarly = role === "firm_admin" || role === "accountant" || role === "payroll_manager";
+
+  const {
+    documents: mergedDocuments,
+    isDriveLoading,
+    isDriveConfigured,
+    driveReason,
+  } = useDriveDocuments(clientId, currentUser?.email, isFirmUserEarly);
+
+  const [syncingDrive, setSyncingDrive] = useState(false);
+
+  const handleDriveSync = async () => {
+    setSyncingDrive(true);
+    try {
+      await fetch("/api/google/drive/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, admin: true }),
+      });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["drive-files", clientId] });
+    } catch (err) {
+      console.error("Drive sync failed:", err);
+    } finally {
+      setSyncingDrive(false);
+    }
+  };
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
@@ -98,12 +125,8 @@ export default function ClientPortal() {
     enabled: !!clientId,
   });
 
-  // Filter data — firm_admin sees everything, clients see only their data
-  const isFirmUser = role === "firm_admin" || role === "accountant" || role === "payroll_manager";
-
-  const userDocuments = isFirmUser
-    ? documents
-    : documents.filter((doc) => doc.created_by === currentUser?.email || doc.client_id === clientId);
+  const isFirmUser = isFirmUserEarly;
+  const userDocuments = mergedDocuments;
 
   const upcomingDeadlines = deadlines
     .filter((d) => d.status !== "terminée" && d.status !== "terminee")
@@ -133,14 +156,17 @@ export default function ClientPortal() {
     if (!uploadFileState) return;
     setUploading(true);
     try {
-      const file_url = await uploadFile(uploadFileState, clientId);
-      await db.documents.create({
-        name: uploadName || uploadFileState.name,
-        client_id: clientId || "",
-        category: uploadCategory,
-        file_url,
-        status: "en_attente",
-      });
+      const formData = new FormData();
+      formData.append("file", uploadFileState);
+      formData.append("name", uploadName || uploadFileState.name);
+      formData.append("category", uploadCategory);
+      if (clientId) formData.append("client_id", clientId);
+
+      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Upload failed");
+      }
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       logAction("upload", "Document", null, { name: uploadName || uploadFileState.name });
       setShowUpload(false);
@@ -366,12 +392,47 @@ export default function ClientPortal() {
         {/* -- Documents Tab -- */}
         <TabsContent value="documents" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-white">Mes documents</h3>
-            <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => setShowUpload(true)}>
-              <Upload className="w-4 h-4 mr-2" />
-              Téléverser
-            </Button>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-semibold text-white">Mes documents</h3>
+              {isDriveConfigured && (
+                <span className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-900/30 border border-emerald-800 px-2 py-0.5 rounded">
+                  <HardDrive className="w-3 h-3" /> Google Drive connecté
+                </span>
+              )}
+              {isDriveLoading && (
+                <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {isDriveConfigured && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-400 border-[#2a2a3e] hover:text-white"
+                  onClick={handleDriveSync}
+                  disabled={syncingDrive}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-1 ${syncingDrive ? "animate-spin" : ""}`} />
+                  Synchroniser
+                </Button>
+              )}
+              <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => setShowUpload(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Téléverser
+              </Button>
+            </div>
           </div>
+
+          {/* Drive not configured banner */}
+          {!isDriveConfigured && driveReason && driveReason !== "google_not_connected" && (
+            <div className="bg-amber-900/20 border border-amber-800/50 rounded-lg p-3 flex items-center gap-2">
+              <CloudOff className="w-4 h-4 text-amber-400 shrink-0" />
+              <p className="text-amber-300/80 text-sm">
+                Google Drive non configuré pour ce dossier client. Contactez votre administrateur pour lier un dossier Drive.
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {userDocuments.length === 0 ? (
               <p className="text-gray-400 col-span-full text-center py-8">
@@ -379,47 +440,56 @@ export default function ClientPortal() {
               </p>
             ) : (
               userDocuments.map((doc) => (
-                <Card key={doc.id} className="bg-[#13131a] border-[#1e1e2e] hover:border-indigo-500 transition-colors">
+                <Card key={doc.id} className="bg-[#13131a] border-[#1e1e2e] hover:border-purple-500 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
-                      <FileText className="w-10 h-10 text-indigo-400" />
-                      <span className="border border-[#2a2a3e] text-[#6a6a8a] text-xs px-2 py-0.5 rounded">
-                        {doc.category}
-                      </span>
+                      {doc.source === "google_drive" ? (
+                        <HardDrive className="w-10 h-10 text-blue-400" />
+                      ) : (
+                        <FileText className="w-10 h-10 text-indigo-400" />
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        {doc.source === "google_drive" && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-900/40 text-blue-400 border border-blue-800">
+                            Drive
+                          </span>
+                        )}
+                        <span className="border border-[#2a2a3e] text-[#6a6a8a] text-xs px-2 py-0.5 rounded">
+                          {doc.category}
+                        </span>
+                      </div>
                     </div>
-                    <h4 className="text-white font-medium mb-2">{doc.name}</h4>
+                    <h4 className="text-white font-medium mb-2 truncate" title={doc.name}>{doc.name}</h4>
                     <p className="text-gray-400 text-sm mb-4">
-                      {safeFmt(doc.created_at, "d MMM yyyy")}
+                      {safeFmt(doc.drive_modified_time || doc.created_at, "d MMM yyyy")}
                     </p>
                     <div className="flex gap-2">
-                      {doc.file_url && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-gray-400 hover:text-white"
-                            onClick={() => {
-                              logAction("view", "Document", doc.id, { name: doc.name });
-                              window.open(doc.file_url, "_blank");
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-1" /> Voir
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-gray-400 hover:text-white"
-                            onClick={() => {
-                              logAction("download", "Document", doc.id, { name: doc.name });
-                              const a = document.createElement("a");
-                              a.href = doc.file_url;
-                              a.download = doc.name || "";
-                              a.click();
-                            }}
-                          >
-                            <Download className="w-4 h-4 mr-1" /> Télécharger
-                          </Button>
-                        </>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-white"
+                        onClick={() => {
+                          logAction("view", "Document", doc.id, { name: doc.name });
+                          window.open(`/api/documents/${doc.id}/download`, "_blank");
+                        }}
+                      >
+                        <Eye className="w-4 h-4 mr-1" /> Voir
+                      </Button>
+                      {doc.source !== "google_drive" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-400 hover:text-white"
+                          onClick={() => {
+                            logAction("download", "Document", doc.id, { name: doc.name });
+                            const a = document.createElement("a");
+                            a.href = `/api/documents/${doc.id}/download`;
+                            a.download = doc.name || "";
+                            a.click();
+                          }}
+                        >
+                          <Download className="w-4 h-4 mr-1" /> Télécharger
+                        </Button>
                       )}
                     </div>
                   </CardContent>
