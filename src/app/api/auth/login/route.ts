@@ -12,51 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const admin = createAdminClient();
-
-    // Step 1: Look up the user by email
-    const { data: userLookup } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-
-    const existingUser = userLookup?.users?.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    );
-
-    // Case A: User does not exist
-    if (!existingUser) {
-      return NextResponse.json(
-        {
-          error: "Aucun compte trouve avec cet email. Veuillez creer un compte.",
-          code: "USER_NOT_FOUND",
-        },
-        { status: 404 }
-      );
-    }
-
-    // Case B: Email not confirmed — auto-confirm it
-    if (!existingUser.email_confirmed_at) {
-      const { error: confirmError } = await admin.auth.admin.updateUserById(
-        existingUser.id,
-        { email_confirm: true }
-      );
-
-      if (confirmError) {
-        console.error("Failed to auto-confirm user:", confirmError);
-        return NextResponse.json(
-          {
-            error: "Votre email n'etait pas confirme. Veuillez contacter l'administrateur.",
-            code: "EMAIL_NOT_CONFIRMED",
-          },
-          { status: 403 }
-        );
-      }
-    }
-
-    // Step 2: Verify the password using a temporary admin-created sign-in
-    // We use the admin client to generate a link, which validates the user exists
-    // Then we attempt sign-in with the Supabase REST API directly to validate password
+    // Step 1: Try to sign in via Supabase REST API (no server cookies needed)
     const signInResponse = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`,
       {
@@ -71,52 +27,96 @@ export async function POST(request: NextRequest) {
 
     const signInResult = await signInResponse.json();
 
-    if (!signInResponse.ok || signInResult.error) {
-      return NextResponse.json(
-        {
-          error: "Mot de passe incorrect. Utilisez 'Mot de passe oublie' pour le reinitialiser.",
-          code: "WRONG_PASSWORD",
-        },
-        { status: 401 }
-      );
-    }
+    // Step 2: If sign-in succeeded, return success with role-based redirect
+    if (signInResponse.ok && signInResult.user) {
+      const admin = createAdminClient();
+      const userId = signInResult.user.id;
+      const userRole = signInResult.user.user_metadata?.role || "firm_admin";
+      const isClient = userRole.startsWith("client_");
 
-    // Step 3: Sign-in succeeded — ensure profile exists
-    const userId = signInResult.user?.id || existingUser.id;
+      // Ensure profile exists
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .single();
 
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("id", userId)
-      .single();
+      if (!profile) {
+        await admin.from("profiles").upsert(
+          {
+            id: userId,
+            email: signInResult.user.email,
+            full_name:
+              signInResult.user.user_metadata?.full_name || email.split("@")[0],
+            role: userRole,
+          },
+          { onConflict: "id" }
+        );
+      }
 
-    if (!profile) {
-      await admin.from("profiles").upsert(
-        {
+      return NextResponse.json({
+        success: true,
+        redirect: isClient ? "/portal" : "/dashboard",
+        user: {
           id: userId,
-          email: existingUser.email,
-          full_name:
-            existingUser.user_metadata?.full_name || email.split("@")[0],
-          role: existingUser.user_metadata?.role || "firm_admin",
+          email: signInResult.user.email,
+          role: userRole,
         },
-        { onConflict: "id" }
-      );
+      });
     }
 
-    const userRole = existingUser.user_metadata?.role || "firm_admin";
-    const isClient = userRole.startsWith("client_");
+    // Step 3: Sign-in failed — diagnose the cause
+    const errorMsg = signInResult.error_description || signInResult.msg || "";
 
-    // Return success + the action for the client to perform sign-in client-side
-    return NextResponse.json({
-      success: true,
-      redirect: isClient ? "/portal" : "/dashboard",
-      autoConfirmed: !existingUser.email_confirmed_at,
-      user: {
-        id: userId,
-        email: existingUser.email,
-        role: userRole,
+    // Check if user exists by trying admin lookup (single user, not listUsers)
+    const admin = createAdminClient();
+
+    // Use the admin API to check if user exists by email
+    const { data: users } = await admin
+      .from("profiles")
+      .select("id, role")
+      .eq("email", email.toLowerCase())
+      .limit(1);
+
+    if (!users || users.length === 0) {
+      // Also check auth.users via admin API for users without profiles
+      const { data: authLookup } = await admin.auth.admin.getUserByEmail(email);
+
+      if (!authLookup) {
+        return NextResponse.json(
+          {
+            error: "Aucun compte trouve avec cet email. Veuillez creer un compte.",
+            code: "USER_NOT_FOUND",
+          },
+          { status: 404 }
+        );
+      }
+
+      // User exists in auth but maybe not confirmed
+      if (!authLookup.email_confirmed_at) {
+        // Auto-confirm and ask them to retry
+        await admin.auth.admin.updateUserById(authLookup.id, {
+          email_confirm: true,
+        });
+
+        return NextResponse.json(
+          {
+            error: "Votre compte vient d'etre active. Veuillez reessayer.",
+            code: "JUST_CONFIRMED",
+          },
+          { status: 401 }
+        );
+      }
+    }
+
+    // User exists but wrong password
+    return NextResponse.json(
+      {
+        error: "Mot de passe incorrect. Utilisez 'Mot de passe oublie' pour le reinitialiser.",
+        code: "WRONG_PASSWORD",
       },
-    });
+      { status: 401 }
+    );
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
