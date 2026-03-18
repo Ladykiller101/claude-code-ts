@@ -23,7 +23,8 @@ import {
   Loader2,
   HardDrive,
   RefreshCw,
-  CloudOff
+  CloudOff,
+  Unplug,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +45,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAuthorization } from "@/hooks/use-authorization";
@@ -91,6 +102,30 @@ export default function ClientPortal() {
   } = useDriveDocuments(clientId, currentUser?.email, isFirmUserEarly);
 
   const [syncingDrive, setSyncingDrive] = useState(false);
+  const [showDisconnect, setShowDisconnect] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const handleDriveDisconnect = async () => {
+    setDisconnecting(true);
+    try {
+      const res = await fetch("/api/google/drive/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, removeSyncedDocs: true }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Disconnect failed");
+      }
+      setShowDisconnect(false);
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["drive-files", clientId] });
+    } catch (err) {
+      console.error("Drive disconnect failed:", err);
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   const handleDriveSync = async () => {
     setSyncingDrive(true);
@@ -405,16 +440,27 @@ export default function ClientPortal() {
             </div>
             <div className="flex items-center gap-2">
               {isDriveConfigured && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-400 border-[#2a2a3e] hover:text-white"
-                  onClick={handleDriveSync}
-                  disabled={syncingDrive}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-1 ${syncingDrive ? "animate-spin" : ""}`} />
-                  Synchroniser
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-400 border-[#2a2a3e] hover:text-white"
+                    onClick={handleDriveSync}
+                    disabled={syncingDrive}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-1 ${syncingDrive ? "animate-spin" : ""}`} />
+                    Synchroniser
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-red-900/50 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                    onClick={() => setShowDisconnect(true)}
+                  >
+                    <Unplug className="w-4 h-4 mr-1" />
+                    Déconnecter
+                  </Button>
+                </>
               )}
               <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => setShowUpload(true)}>
                 <Upload className="w-4 h-4 mr-2" />
@@ -482,10 +528,7 @@ export default function ClientPortal() {
                           className="text-gray-400 hover:text-white"
                           onClick={() => {
                             logAction("download", "Document", doc.id, { name: doc.name });
-                            const a = document.createElement("a");
-                            a.href = `/api/documents/${doc.id}/download`;
-                            a.download = doc.name || "";
-                            a.click();
+                            window.open(`/api/documents/${doc.id}/download?download=true`, "_blank");
                           }}
                         >
                           <Download className="w-4 h-4 mr-1" /> Télécharger
@@ -712,6 +755,44 @@ export default function ClientPortal() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Drive Disconnect Confirmation */}
+      <AlertDialog open={showDisconnect} onOpenChange={setShowDisconnect}>
+        <AlertDialogContent className="bg-[#13131a] border-[#1e1e2e]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              Déconnecter Google Drive ?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              Cette action supprimera la liaison Google Drive.
+              Les documents synchronisés depuis Drive seront retirés de la plateforme.
+              Les fichiers sur Google Drive ne seront pas affectés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="border-[#2a2a3e] text-gray-300 hover:text-white"
+              disabled={disconnecting}
+            >
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={(e) => {
+                e.preventDefault();
+                handleDriveDisconnect();
+              }}
+              disabled={disconnecting}
+            >
+              {disconnecting ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Déconnexion...</>
+              ) : (
+                <><Unplug className="w-4 h-4 mr-2" />Déconnecter</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

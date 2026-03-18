@@ -19,6 +19,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const isDownload = searchParams.get("download") === "true";
     const supabase = createAdminClient();
 
     const { data: doc, error } = await supabase
@@ -50,18 +52,20 @@ export async function GET(
       // Auth check is best-effort — don't block download if auth lookup fails
     }
 
-    // Google Drive documents — redirect to Drive viewer
-    if (doc.drive_web_view_link) {
-      return NextResponse.redirect(doc.drive_web_view_link);
-    }
+    // For uploaded documents, prefer file_url (Supabase storage) over drive_web_view_link
+    // For Drive-only documents (source === "google_drive"), use drive_web_view_link
 
-    // Supabase storage documents — generate a signed URL (valid 1 hour)
+    // Supabase storage documents — generate a signed URL
     if (doc.file_url) {
       const path = extractStoragePath(doc.file_url);
       if (path) {
+        // For downloads, set download option so Supabase adds Content-Disposition: attachment
+        const downloadOption = isDownload ? (doc.name || true) : undefined;
         const { data: signed, error: signError } = await supabase.storage
           .from("documents")
-          .createSignedUrl(path, 3600);
+          .createSignedUrl(path, 3600, {
+            download: downloadOption,
+          });
 
         if (!signError && signed?.signedUrl) {
           return NextResponse.redirect(signed.signedUrl);
@@ -69,6 +73,11 @@ export async function GET(
       }
       // Fallback: redirect to public URL as-is
       return NextResponse.redirect(doc.file_url);
+    }
+
+    // Google Drive documents — redirect to Drive viewer
+    if (doc.drive_web_view_link) {
+      return NextResponse.redirect(doc.drive_web_view_link);
     }
 
     return NextResponse.json({ error: "No file URL available" }, { status: 404 });

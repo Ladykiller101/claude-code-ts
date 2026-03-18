@@ -277,11 +277,10 @@ export default function Documents() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          asChild
+                          onClick={() => window.open(`/api/documents/${doc.id}/download`, "_blank")}
+                          title="Voir le document"
                         >
-                          <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer">
-                            <Eye className="w-4 h-4" />
-                          </a>
+                          <Eye className="w-4 h-4" />
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -290,11 +289,11 @@ export default function Documents() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <a href={`/api/documents/${doc.id}/download`} download>
-                                <Download className="w-4 h-4 mr-2" />
-                                Télécharger
-                              </a>
+                            <DropdownMenuItem
+                              onClick={() => window.open(`/api/documents/${doc.id}/download?download=true`, "_blank")}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Télécharger
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-rose-600"

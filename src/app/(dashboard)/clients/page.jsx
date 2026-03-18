@@ -14,7 +14,8 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
-  Eye
+  Filter,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +86,7 @@ export default function Clients() {
     }
   };
 
-  const clientTypes = ["tous", ...Array.from(new Set(clients.map((c) => c.type).filter(Boolean)))];
+  const CLIENT_TYPES = ["TPE", "PME", "ETI", "Grand compte", "Particulier"];
 
   const filteredClients = clients.filter((c) => {
     const matchesSearch =
@@ -126,78 +127,104 @@ export default function Clients() {
         </Button>
       </div>
 
-      {/* Search + Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative max-w-md w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Rechercher un client..."
-            className="pl-10"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      {/* Search */}
+      <div className="relative max-w-md w-full">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Input
+          placeholder="Rechercher un client..."
+          className="pl-10"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="bg-[#13131a] rounded-2xl border border-[#1e1e2e] p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+            <Filter className="w-4 h-4 text-purple-400" />
+            Filtres
+          </div>
+          {(statusFilter !== "tous" || typeFilter !== "tous") && (
+            <button
+              onClick={() => { setStatusFilter("tous"); setTypeFilter("tous"); }}
+              className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+            >
+              <X className="w-3 h-3" />
+              Réinitialiser
+            </button>
+          )}
         </div>
 
         {/* Status filter */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {["tous", "actif", "prospect", "inactif"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors capitalize ${
-                statusFilter === s
-                  ? s === "actif"
-                    ? "bg-emerald-900/60 text-emerald-300 border-emerald-700"
-                    : s === "prospect"
-                    ? "bg-blue-900/60 text-blue-300 border-blue-700"
-                    : s === "inactif"
-                    ? "bg-gray-800 text-gray-300 border-gray-600"
-                    : "bg-purple-900/60 text-purple-300 border-purple-700"
-                  : "bg-[#13131a] text-gray-500 border-[#2a2a3e] hover:text-gray-300 hover:border-gray-600"
-              }`}
-            >
-              {s === "tous" ? "Tous" : s}
-              {s !== "tous" && (
-                <span className="ml-1.5 opacity-70">
-                  {clients.filter((c) => c.status === s).length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Type filter — only shown if multiple types exist */}
-        {clientTypes.length > 1 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {clientTypes.map((t) => (
+        <div className="space-y-2">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            {["tous", "actif", "prospect", "inactif"].map((s) => (
               <button
-                key={t}
-                onClick={() => setTypeFilter(t)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors capitalize ${
-                  typeFilter === t
-                    ? "bg-indigo-900/60 text-indigo-300 border-indigo-700"
-                    : "bg-[#13131a] text-gray-500 border-[#2a2a3e] hover:text-gray-300 hover:border-gray-600"
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 capitalize ${
+                  statusFilter === s
+                    ? s === "actif"
+                      ? "bg-emerald-900/60 text-emerald-300 border-emerald-600 shadow-sm shadow-emerald-900/30"
+                      : s === "prospect"
+                      ? "bg-blue-900/60 text-blue-300 border-blue-600 shadow-sm shadow-blue-900/30"
+                      : s === "inactif"
+                      ? "bg-gray-700/60 text-gray-200 border-gray-500 shadow-sm shadow-gray-900/30"
+                      : "bg-purple-900/60 text-purple-300 border-purple-600 shadow-sm shadow-purple-900/30"
+                    : "bg-[#0e0e16] text-gray-400 border-[#2a2a3e] hover:text-gray-200 hover:border-gray-500 hover:bg-[#1a1a2e]"
                 }`}
               >
-                {t === "tous" ? "Tous types" : t}
+                {s === "tous" ? "Tous" : s}
+                <span className="ml-1.5 tabular-nums opacity-70">
+                  {s === "tous" ? clients.length : clients.filter((c) => c.status === s).length}
+                </span>
               </button>
             ))}
           </div>
-        )}
+        </div>
+
+        {/* Type filter */}
+        <div className="space-y-2">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Type</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setTypeFilter("tous")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${
+                typeFilter === "tous"
+                  ? "bg-purple-900/60 text-purple-300 border-purple-600 shadow-sm shadow-purple-900/30"
+                  : "bg-[#0e0e16] text-gray-400 border-[#2a2a3e] hover:text-gray-200 hover:border-gray-500 hover:bg-[#1a1a2e]"
+              }`}
+            >
+              Tous
+              <span className="ml-1.5 tabular-nums opacity-70">{clients.length}</span>
+            </button>
+            {CLIENT_TYPES.map((t) => {
+              const count = clients.filter((c) => c.type === t).length;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTypeFilter(t)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${
+                    typeFilter === t
+                      ? "bg-indigo-900/60 text-indigo-300 border-indigo-600 shadow-sm shadow-indigo-900/30"
+                      : "bg-[#0e0e16] text-gray-400 border-[#2a2a3e] hover:text-gray-200 hover:border-gray-500 hover:bg-[#1a1a2e]"
+                  }`}
+                >
+                  {t}
+                  <span className="ml-1.5 tabular-nums opacity-70">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Active filter summary */}
       {(statusFilter !== "tous" || typeFilter !== "tous" || search) && (
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <span>{filteredClients.length} client{filteredClients.length !== 1 ? "s" : ""} trouvé{filteredClients.length !== 1 ? "s" : ""}</span>
-          {(statusFilter !== "tous" || typeFilter !== "tous") && (
-            <button
-              onClick={() => { setStatusFilter("tous"); setTypeFilter("tous"); }}
-              className="text-xs text-purple-400 hover:text-purple-300 underline"
-            >
-              Réinitialiser les filtres
-            </button>
-          )}
         </div>
       )}
 
@@ -289,9 +316,21 @@ export default function Clients() {
 
       {!isLoading && filteredClients.length === 0 && (
         <div className="text-center py-12">
-          <Building2 className="w-12 h-12 text-gray-300 mx-auto" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Aucun client</h3>
-          <p className="text-gray-500 mt-1">Commencez par ajouter votre premier client</p>
+          <Building2 className="w-12 h-12 text-gray-600 mx-auto" />
+          <h3 className="mt-4 text-lg font-medium text-white">Aucun client</h3>
+          <p className="text-gray-400 mt-1">
+            {statusFilter !== "tous" || typeFilter !== "tous" || search
+              ? "Aucun résultat pour ces filtres. Essayez de modifier vos critères."
+              : "Commencez par ajouter votre premier client"}
+          </p>
+          {(statusFilter !== "tous" || typeFilter !== "tous") && (
+            <button
+              onClick={() => { setStatusFilter("tous"); setTypeFilter("tous"); setSearch(""); }}
+              className="mt-3 text-sm text-purple-400 hover:text-purple-300 underline"
+            >
+              Réinitialiser tous les filtres
+            </button>
+          )}
         </div>
       )}
 

@@ -19,6 +19,7 @@ import {
   Upload,
   X,
   Loader2,
+  Unplug,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useState } from "react";
@@ -89,6 +100,31 @@ export default function ClientDetailPage() {
   const [uploadName, setUploadName] = useState("");
   const [uploadCategory, setUploadCategory] = useState("autre");
   const [uploading, setUploading] = useState(false);
+  const [showDisconnect, setShowDisconnect] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const handleDriveDisconnect = async () => {
+    setDisconnecting(true);
+    try {
+      const res = await fetch("/api/google/drive/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: id, removeSyncedDocs: true }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Disconnect failed");
+      }
+      setShowDisconnect(false);
+      queryClient.invalidateQueries({ queryKey: ["client", id] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["drive-files", id] });
+    } catch (err) {
+      console.error("Drive disconnect failed:", err);
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
@@ -198,16 +234,27 @@ export default function ClientDetailPage() {
           Envoyer un fichier
         </Button>
         {client.drive_folder_id && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSync}
-            disabled={syncing}
-            className="border-[#2a2a3e] text-gray-300 hover:text-white"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Sync..." : "Synchroniser"}
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSync}
+              disabled={syncing}
+              className="border-[#2a2a3e] text-gray-300 hover:text-white"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Sync..." : "Synchroniser"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDisconnect(true)}
+              className="border-red-900/50 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+            >
+              <Unplug className="w-4 h-4 mr-2" />
+              Déconnecter Drive
+            </Button>
+          </>
         )}
       </div>
 
@@ -383,6 +430,44 @@ export default function ClientDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Drive Disconnect Confirmation */}
+      <AlertDialog open={showDisconnect} onOpenChange={setShowDisconnect}>
+        <AlertDialogContent className="bg-[#13131a] border-[#1e1e2e]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              Déconnecter Google Drive ?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              Cette action supprimera la liaison Google Drive pour ce client.
+              Les documents synchronisés depuis Drive seront retirés de la plateforme.
+              Les fichiers sur Google Drive ne seront pas affectés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="border-[#2a2a3e] text-gray-300 hover:text-white"
+              disabled={disconnecting}
+            >
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={(e) => {
+                e.preventDefault();
+                handleDriveDisconnect();
+              }}
+              disabled={disconnecting}
+            >
+              {disconnecting ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Déconnexion...</>
+              ) : (
+                <><Unplug className="w-4 h-4 mr-2" />Déconnecter</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Documents List */}
       <Card className="bg-[#13131a] border-[#1e1e2e]">
         <CardHeader>
@@ -436,15 +521,22 @@ export default function ClientDetailPage() {
                     }`}>
                       {categoryLabels[doc.category] || doc.category}
                     </span>
-                    <a
-                      href={`/api/documents/${doc.id}/download`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => window.open(`/api/documents/${doc.id}/download`, "_blank")}
                       className="text-gray-400 hover:text-white transition-colors p-1"
-                      title="Ouvrir"
+                      title="Voir le document"
                     >
                       <ExternalLink className="w-4 h-4" />
-                    </a>
+                    </button>
+                    {doc.source !== "google_drive" && (
+                      <button
+                        onClick={() => window.open(`/api/documents/${doc.id}/download?download=true`, "_blank")}
+                        className="text-gray-400 hover:text-white transition-colors p-1"
+                        title="Télécharger"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               ))}
