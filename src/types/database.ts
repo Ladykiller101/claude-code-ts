@@ -50,6 +50,7 @@ export interface Task {
   description: string | null;
   client_id: string | null;
   assignee: string | null;
+  assigned_to: string | null;
   priority: string;
   status: string;
   category: string | null;

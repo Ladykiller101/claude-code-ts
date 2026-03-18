@@ -17,25 +17,44 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // Use the server-side login endpoint which:
+      // 1. Checks if the user exists
+      // 2. Auto-confirms unconfirmed emails
+      // 3. Ensures profile exists
+      // 4. Returns precise error messages
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (authError) {
-      const msg = authError.message;
-      setError(
-        msg === "Invalid login credentials"
-          ? "Email ou mot de passe incorrect"
-          : msg === "Email not confirmed"
-          ? "Email non confirme. Veuillez creer un nouveau compte."
-          : msg
-      );
-      setLoading(false);
-    } else {
-      router.push("/dashboard");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Erreur de connexion");
+        setLoading(false);
+        return;
+      }
+
+      // Server-side login set the cookies via the server client.
+      // Now sync the browser client by signing in client-side too.
+      const supabase = createClient();
+      const { error: clientError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (clientError) {
+        // Server login succeeded but client sync failed — try to navigate anyway
+        console.warn("Client-side sync failed (server login OK):", clientError.message);
+      }
+
+      router.push(data.redirect || "/dashboard");
       router.refresh();
+    } catch {
+      setError("Erreur serveur, veuillez reessayer");
+      setLoading(false);
     }
   };
 
@@ -91,12 +110,22 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="text-center text-gray-400 text-sm">
-        Pas encore de compte ?{" "}
-        <Link href="/signup" className="text-indigo-400 hover:text-indigo-300">
-          Creer un compte
-        </Link>
-      </p>
+      <div className="space-y-3 text-center text-sm">
+        <p>
+          <Link
+            href="/forgot-password"
+            className="text-indigo-400 hover:text-indigo-300"
+          >
+            Mot de passe oublie ?
+          </Link>
+        </p>
+        <p className="text-gray-400">
+          Pas encore de compte ?{" "}
+          <Link href="/signup" className="text-indigo-400 hover:text-indigo-300">
+            Creer un compte
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

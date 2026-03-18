@@ -102,29 +102,29 @@ export default function Deadlines() {
 
   const getDaysInfo = (date, status) => {
     if (status === "terminée") {
-      return { text: "Terminé", color: "text-emerald-600", bg: "bg-emerald-50" };
+      return { text: "Terminé", color: "text-emerald-400", bg: "bg-emerald-900/30" };
     }
 
     const parsed = safeDate(date);
-    if (!parsed) return { text: "—", color: "text-gray-600", bg: "bg-gray-50" };
+    if (!parsed) return { text: "—", color: "text-gray-400", bg: "bg-gray-800/50" };
     const days = differenceInDays(parsed, new Date());
 
     if (days < 0) {
-      return { text: `${Math.abs(days)}j en retard`, color: "text-rose-600", bg: "bg-rose-50", urgent: true };
+      return { text: `${Math.abs(days)}j en retard`, color: "text-rose-400", bg: "bg-rose-900/30", urgent: true };
     }
     if (days === 0) {
-      return { text: "Aujourd'hui", color: "text-rose-600", bg: "bg-rose-50", urgent: true };
+      return { text: "Aujourd'hui", color: "text-rose-400", bg: "bg-rose-900/30", urgent: true };
     }
     if (days === 1) {
-      return { text: "Demain", color: "text-amber-600", bg: "bg-amber-50", urgent: true };
+      return { text: "Demain", color: "text-amber-400", bg: "bg-amber-900/30", urgent: true };
     }
     if (days <= 7) {
-      return { text: `${days} jours`, color: "text-amber-600", bg: "bg-amber-50" };
+      return { text: `${days} jours`, color: "text-amber-400", bg: "bg-amber-900/30" };
     }
     if (days <= 30) {
-      return { text: `${days} jours`, color: "text-blue-600", bg: "bg-blue-50" };
+      return { text: `${days} jours`, color: "text-blue-400", bg: "bg-blue-900/30" };
     }
-    return { text: `${days} jours`, color: "text-gray-600", bg: "bg-gray-50" };
+    return { text: `${days} jours`, color: "text-gray-400", bg: "bg-gray-800/50" };
   };
 
   const filteredDeadlines = deadlines.filter((d) => {
@@ -211,9 +211,9 @@ export default function Deadlines() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`bg-white rounded-2xl border p-5 hover:shadow-lg transition-all group ${
-                    deadline.status === "terminée" ? "opacity-60 border-gray-100" :
-                    daysInfo.urgent ? "border-rose-200" : "border-gray-100"
+                  className={`bg-[#13131a] rounded-2xl border p-5 hover:border-purple-500/30 transition-all group ${
+                    deadline.status === "terminée" ? "opacity-60 border-[#1e1e2e]" :
+                    daysInfo.urgent ? "border-rose-800/50" : "border-[#1e1e2e]"
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -265,12 +265,12 @@ export default function Deadlines() {
                   </div>
 
                   <div className="mt-4">
-                    <h3 className={`font-semibold text-gray-900 ${
+                    <h3 className={`font-semibold text-white ${
                       deadline.status === "terminée" ? "line-through" : ""
                     }`}>
                       {deadline.title}
                     </h3>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-400 mt-1">
                       {getClientName(deadline.client_id)}
                     </p>
                   </div>
@@ -294,9 +294,9 @@ export default function Deadlines() {
 
       {!isLoading && sortedDeadlines.length === 0 && (
         <div className="text-center py-12">
-          <Calendar className="w-12 h-12 text-gray-300 mx-auto" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Aucune échéance</h3>
-          <p className="text-gray-500 mt-1">Ajoutez vos dates importantes</p>
+          <Calendar className="w-12 h-12 text-gray-600 mx-auto" />
+          <h3 className="mt-4 text-lg font-medium text-white">Aucune échéance</h3>
+          <p className="text-gray-400 mt-1">Ajoutez vos dates importantes</p>
         </div>
       )}
 

@@ -46,7 +46,8 @@ export default function SignupPage() {
         setError(signInError.message);
         setLoading(false);
       } else {
-        router.push("/dashboard");
+        const isClient = role === "client_admin";
+        router.push(isClient ? "/portal" : "/dashboard");
         router.refresh();
       }
     } catch {
@@ -112,25 +113,32 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Role</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Vous êtes...</label>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full px-4 py-3 bg-[#14141f] border border-gray-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-[#14141f] border border-gray-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           >
-            <option value="firm_admin">Administrateur cabinet</option>
-            <option value="accountant">Comptable</option>
-            <option value="payroll_manager">Gestionnaire paie</option>
-            <option value="client_admin">Client — Administrateur</option>
-            <option value="client_hr">Client — RH</option>
-            <option value="client_readonly">Client — Lecture seule</option>
+            <optgroup label="Interne — Cabinet SYGMA">
+              <option value="firm_admin">Administrateur cabinet</option>
+              <option value="accountant">Comptable</option>
+              <option value="payroll_manager">Gestionnaire paie</option>
+            </optgroup>
+            <optgroup label="Externe — Client">
+              <option value="client_admin">Client</option>
+            </optgroup>
           </select>
+          <p className="text-xs text-gray-500 mt-1">
+            {role === "client_admin"
+              ? "Vous aurez accès à votre portail client sécurisé"
+              : "Accès aux outils de gestion du cabinet"}
+          </p>
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
         >
           {loading ? "Creation..." : "Creer mon compte"}
         </button>

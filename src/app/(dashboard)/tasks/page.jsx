@@ -91,10 +91,10 @@ export default function Tasks() {
 
   const getPriorityStyle = (priority) => {
     const styles = {
-      urgente: "bg-rose-100 text-rose-700 border-rose-200",
-      haute: "bg-amber-100 text-amber-700 border-amber-200",
-      moyenne: "bg-blue-100 text-blue-700 border-blue-200",
-      basse: "bg-gray-100 text-gray-600 border-gray-200",
+      urgente: "bg-rose-900/40 text-rose-400 border-rose-800",
+      haute: "bg-amber-900/40 text-amber-400 border-amber-800",
+      moyenne: "bg-blue-900/40 text-blue-400 border-blue-800",
+      basse: "bg-gray-800/40 text-gray-400 border-gray-700",
     };
     return styles[priority] || styles.moyenne;
   };
@@ -226,9 +226,9 @@ export default function Tasks() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`bg-white rounded-2xl border p-5 hover:shadow-lg transition-all group ${
+                  className={`bg-[#13131a] rounded-2xl border p-5 hover:border-purple-500/30 transition-all group ${
                     task.status === "terminée" ? "opacity-60" : ""
-                  } ${isOverdue ? "border-rose-200" : "border-gray-100"}`}
+                  } ${isOverdue ? "border-rose-800/50" : "border-[#1e1e2e]"}`}
                 >
                   <div className="flex items-start gap-4">
                     {/* Status Toggle */}
@@ -246,13 +246,13 @@ export default function Tasks() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <h3 className={`font-semibold text-gray-900 ${
+                          <h3 className={`font-semibold text-white ${
                             task.status === "terminée" ? "line-through" : ""
                           }`}>
                             {task.title}
                           </h3>
                           {task.description && (
-                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                            <p className="text-sm text-gray-400 mt-1 line-clamp-2">
                               {task.description}
                             </p>
                           )}
@@ -294,12 +294,12 @@ export default function Tasks() {
                         <Badge className={`${getPriorityStyle(task.priority)} border`}>
                           {task.priority}
                         </Badge>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-400">
                           {getClientName(task.client_id)}
                         </span>
                         <span className={`flex items-center gap-1 text-sm ${
-                          isOverdue ? "text-rose-600 font-medium" :
-                          isDueToday ? "text-amber-600" : "text-gray-500"
+                          isOverdue ? "text-rose-400 font-medium" :
+                          isDueToday ? "text-amber-400" : "text-gray-400"
                         }`}>
                           <Clock className="w-3.5 h-3.5" />
                           {isOverdue ? "En retard \u2022 " : ""}
@@ -317,9 +317,9 @@ export default function Tasks() {
 
       {!isLoading && sortedTasks.length === 0 && (
         <div className="text-center py-12">
-          <CheckSquare className="w-12 h-12 text-gray-300 mx-auto" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Aucune tâche</h3>
-          <p className="text-gray-500 mt-1">Créez votre première tâche</p>
+          <CheckSquare className="w-12 h-12 text-gray-600 mx-auto" />
+          <h3 className="mt-4 text-lg font-medium text-white">Aucune tâche</h3>
+          <p className="text-gray-400 mt-1">Créez votre première tâche</p>
         </div>
       )}
 

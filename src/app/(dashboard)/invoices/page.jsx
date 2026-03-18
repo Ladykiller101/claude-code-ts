@@ -93,9 +93,9 @@ export default function Invoices() {
 
   const getStatusBadge = (status) => {
     const styles = {
-      "à_traiter": { bg: "bg-amber-100 text-amber-700 border-amber-200", icon: Clock },
-      "comptabilisée": { bg: "bg-blue-100 text-blue-700 border-blue-200", icon: CheckCircle },
-      "payée": { bg: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle },
+      "à_traiter": { bg: "bg-amber-900/40 text-amber-400 border-amber-800", icon: Clock },
+      "comptabilisée": { bg: "bg-blue-900/40 text-blue-400 border-blue-800", icon: CheckCircle },
+      "payée": { bg: "bg-emerald-900/40 text-emerald-400 border-emerald-800", icon: CheckCircle },
     };
     return styles[status] || styles["à_traiter"];
   };
@@ -137,42 +137,42 @@ export default function Invoices() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-[#13131a] rounded-2xl border border-[#1e1e2e] p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total TTC</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm text-gray-400">Total TTC</p>
+              <p className="text-2xl font-bold text-white mt-1">
                 {totalAmount.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-blue-400" />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-[#13131a] rounded-2xl border border-[#1e1e2e] p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">À traiter</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm text-gray-400">À traiter</p>
+              <p className="text-2xl font-bold text-white mt-1">
                 {pendingAmount.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-amber-400" />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-[#13131a] rounded-2xl border border-[#1e1e2e] p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">TVA totale</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm text-gray-400">TVA totale</p>
+              <p className="text-2xl font-bold text-white mt-1">
                 {totalTVA.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-              <Receipt className="w-5 h-5 text-indigo-600" />
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+              <Receipt className="w-5 h-5 text-indigo-400" />
             </div>
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function Invoices() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-[#0f0f1a] rounded-2xl border border-gray-800 overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-4">
             {[...Array(5)].map((_, i) => (
@@ -225,7 +225,7 @@ export default function Invoices() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50/50">
+              <TableRow className="bg-gray-900/50">
                 <TableHead>Fournisseur</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>N° Facture</TableHead>
@@ -248,21 +248,21 @@ export default function Invoices() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="group hover:bg-gray-50/50"
+                      className="group hover:bg-gray-800/50"
                     >
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-white">
                         {invoice.vendor_name || "—"}
                       </TableCell>
-                      <TableCell className="text-gray-600">
+                      <TableCell className="text-gray-400">
                         {getClientName(invoice.client_id)}
                       </TableCell>
-                      <TableCell className="text-gray-600">
+                      <TableCell className="text-gray-400">
                         {invoice.invoice_number || "—"}
                       </TableCell>
-                      <TableCell className="text-gray-600">
+                      <TableCell className="text-gray-400">
                         {safeFmt(invoice.invoice_date, "d MMM yyyy")}
                       </TableCell>
-                      <TableCell className="text-right font-semibold">
+                      <TableCell className="text-right font-semibold text-white">
                         {invoice.amount_ttc?.toLocaleString("fr-FR", {
                           style: "currency",
                           currency: "EUR",
@@ -337,9 +337,9 @@ export default function Invoices() {
 
         {!isLoading && filteredInvoices.length === 0 && (
           <div className="text-center py-12">
-            <Receipt className="w-12 h-12 text-gray-300 mx-auto" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">Aucune facture</h3>
-            <p className="text-gray-500 mt-1">
+            <Receipt className="w-12 h-12 text-gray-600 mx-auto" />
+            <h3 className="mt-4 text-lg font-medium text-white">Aucune facture</h3>
+            <p className="text-gray-400 mt-1">
               Les factures apparaîtront ici après extraction OCR
             </p>
           </div>

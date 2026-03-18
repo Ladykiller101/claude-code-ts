@@ -244,7 +244,7 @@ export default function Documents() {
                         <span className="font-medium text-white">{doc.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-600">
+                    <TableCell className="text-gray-400">
                       {getClientName(doc.client_id)}
                     </TableCell>
                     <TableCell>
@@ -253,7 +253,7 @@ export default function Documents() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getStatusIcon(doc.status)}
-                        <span className="text-gray-600 capitalize">
+                        <span className="text-gray-400 capitalize">
                           {doc.status?.replace("_", " ")}
                         </span>
                       </div>
@@ -268,7 +268,7 @@ export default function Documents() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setOcrDocument(doc)}
-                            className="text-[#4f46e5] hover:text-[#4f46e5] hover:bg-indigo-50"
+                            className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900/30"
                           >
                             <Sparkles className="w-4 h-4 mr-1" />
                             OCR
@@ -319,7 +319,7 @@ export default function Documents() {
 
         {!isLoading && filteredDocuments.length === 0 && (
           <div className="text-center py-12">
-            <FileText className="w-12 h-12 text-gray-300 mx-auto" />
+            <FileText className="w-12 h-12 text-gray-600 mx-auto" />
             <h3 className="mt-4 text-lg font-medium text-white">Aucun document</h3>
             <p className="text-gray-500 mt-1">Uploadez votre premier document</p>
           </div>
