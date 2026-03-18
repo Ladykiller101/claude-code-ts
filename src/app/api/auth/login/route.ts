@@ -68,48 +68,26 @@ export async function POST(request: NextRequest) {
     // Step 3: Sign-in failed — diagnose the cause
     const errorMsg = signInResult.error_description || signInResult.msg || "";
 
-    // Check if user exists by trying admin lookup (single user, not listUsers)
+    // Check if user exists via profiles table (fast, no admin.listUsers)
     const admin = createAdminClient();
 
-    // Use the admin API to check if user exists by email
-    const { data: users } = await admin
+    const { data: profileMatch } = await admin
       .from("profiles")
-      .select("id, role")
+      .select("id")
       .eq("email", email.toLowerCase())
       .limit(1);
 
-    if (!users || users.length === 0) {
-      // Also check auth.users via admin API for users without profiles
-      const { data: authLookup } = await admin.auth.admin.getUserByEmail(email);
-
-      if (!authLookup) {
-        return NextResponse.json(
-          {
-            error: "Aucun compte trouve avec cet email. Veuillez creer un compte.",
-            code: "USER_NOT_FOUND",
-          },
-          { status: 404 }
-        );
-      }
-
-      // User exists in auth but maybe not confirmed
-      if (!authLookup.email_confirmed_at) {
-        // Auto-confirm and ask them to retry
-        await admin.auth.admin.updateUserById(authLookup.id, {
-          email_confirm: true,
-        });
-
-        return NextResponse.json(
-          {
-            error: "Votre compte vient d'etre active. Veuillez reessayer.",
-            code: "JUST_CONFIRMED",
-          },
-          { status: 401 }
-        );
-      }
+    if (!profileMatch || profileMatch.length === 0) {
+      return NextResponse.json(
+        {
+          error: "Aucun compte trouve avec cet email. Veuillez creer un compte.",
+          code: "USER_NOT_FOUND",
+        },
+        { status: 404 }
+      );
     }
 
-    // User exists but wrong password
+    // User exists but password is wrong
     return NextResponse.json(
       {
         error: "Mot de passe incorrect. Utilisez 'Mot de passe oublie' pour le reinitialiser.",
