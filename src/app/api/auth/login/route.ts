@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,76 +12,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Attempt the sign-in using a server client that sets cookies
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // Server Component — ignore
-            }
-          },
-        },
-      }
-    );
-
-    const { data: signInData, error: signInError } =
-      await supabase.auth.signInWithPassword({ email, password });
-
-    // Step 2: If sign-in succeeded, ensure profile and return success
-    if (!signInError && signInData?.user) {
-      const admin = createAdminClient();
-      const userId = signInData.user.id;
-
-      // Ensure profile exists (some users were created before the trigger was fixed)
-      const { data: profile } = await admin
-        .from("profiles")
-        .select("id")
-        .eq("id", userId)
-        .single();
-
-      if (!profile) {
-        await admin.from("profiles").upsert(
-          {
-            id: userId,
-            email: signInData.user.email,
-            full_name:
-              signInData.user.user_metadata?.full_name ||
-              email.split("@")[0],
-            role: signInData.user.user_metadata?.role || "firm_admin",
-          },
-          { onConflict: "id" }
-        );
-      }
-
-      const userRole = signInData.user.user_metadata?.role || "firm_admin";
-      const isClient = userRole.startsWith("client_");
-
-      return NextResponse.json({
-        success: true,
-        redirect: isClient ? "/portal" : "/dashboard",
-        user: {
-          id: signInData.user.id,
-          email: signInData.user.email,
-          role: userRole,
-        },
-      });
-    }
-
-    // Step 3: Sign-in failed — diagnose the real cause using admin API
     const admin = createAdminClient();
 
-    // Look up the user by email in auth.users via admin
+    // Step 1: Look up the user by email
     const { data: userLookup } = await admin.auth.admin.listUsers({
       page: 1,
       perPage: 1000,
@@ -104,9 +35,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Case B: Email not confirmed
+    // Case B: Email not confirmed — auto-confirm it
     if (!existingUser.email_confirmed_at) {
-      // Auto-confirm the user via admin API since we control this instance
       const { error: confirmError } = await admin.auth.admin.updateUserById(
         existingUser.id,
         { email_confirm: true }
@@ -116,75 +46,77 @@ export async function POST(request: NextRequest) {
         console.error("Failed to auto-confirm user:", confirmError);
         return NextResponse.json(
           {
-            error:
-              "Votre email n'etait pas confirme. Veuillez contacter l'administrateur.",
+            error: "Votre email n'etait pas confirme. Veuillez contacter l'administrateur.",
             code: "EMAIL_NOT_CONFIRMED",
           },
           { status: 403 }
         );
       }
-
-      // Email now confirmed — retry login
-      const { data: retryData, error: retryError } =
-        await supabase.auth.signInWithPassword({ email, password });
-
-      if (retryError) {
-        return NextResponse.json(
-          {
-            error:
-              "Votre email a ete confirme mais le mot de passe est incorrect. Utilisez 'Mot de passe oublie' pour le reinitialiser.",
-            code: "WRONG_PASSWORD_AFTER_CONFIRM",
-          },
-          { status: 401 }
-        );
-      }
-
-      if (retryData?.user) {
-        const userRole = retryData.user.user_metadata?.role || "firm_admin";
-        const isClient = userRole.startsWith("client_");
-
-        // Ensure profile exists
-        const { data: profile } = await admin
-          .from("profiles")
-          .select("id")
-          .eq("id", retryData.user.id)
-          .single();
-
-        if (!profile) {
-          await admin.from("profiles").upsert(
-            {
-              id: retryData.user.id,
-              email: retryData.user.email,
-              full_name:
-                retryData.user.user_metadata?.full_name ||
-                email.split("@")[0],
-              role: userRole,
-            },
-            { onConflict: "id" }
-          );
-        }
-
-        return NextResponse.json({
-          success: true,
-          redirect: isClient ? "/portal" : "/dashboard",
-          user: {
-            id: retryData.user.id,
-            email: retryData.user.email,
-            role: userRole,
-          },
-        });
-      }
     }
 
-    // Case C: User exists and email is confirmed — wrong password
-    return NextResponse.json(
+    // Step 2: Verify the password using a temporary admin-created sign-in
+    // We use the admin client to generate a link, which validates the user exists
+    // Then we attempt sign-in with the Supabase REST API directly to validate password
+    const signInResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`,
       {
-        error:
-          "Mot de passe incorrect. Utilisez 'Mot de passe oublie' pour le reinitialiser.",
-        code: "WRONG_PASSWORD",
-      },
-      { status: 401 }
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify({ email, password }),
+      }
     );
+
+    const signInResult = await signInResponse.json();
+
+    if (!signInResponse.ok || signInResult.error) {
+      return NextResponse.json(
+        {
+          error: "Mot de passe incorrect. Utilisez 'Mot de passe oublie' pour le reinitialiser.",
+          code: "WRONG_PASSWORD",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Step 3: Sign-in succeeded — ensure profile exists
+    const userId = signInResult.user?.id || existingUser.id;
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .single();
+
+    if (!profile) {
+      await admin.from("profiles").upsert(
+        {
+          id: userId,
+          email: existingUser.email,
+          full_name:
+            existingUser.user_metadata?.full_name || email.split("@")[0],
+          role: existingUser.user_metadata?.role || "firm_admin",
+        },
+        { onConflict: "id" }
+      );
+    }
+
+    const userRole = existingUser.user_metadata?.role || "firm_admin";
+    const isClient = userRole.startsWith("client_");
+
+    // Return success + the action for the client to perform sign-in client-side
+    return NextResponse.json({
+      success: true,
+      redirect: isClient ? "/portal" : "/dashboard",
+      autoConfirmed: !existingUser.email_confirmed_at,
+      user: {
+        id: userId,
+        email: existingUser.email,
+        role: userRole,
+      },
+    });
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
