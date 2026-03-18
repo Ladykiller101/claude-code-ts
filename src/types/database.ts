@@ -20,6 +20,7 @@ export interface Client {
   status: "actif" | "prospect" | "inactif";
   address: string | null;
   notes: string | null;
+  drive_folder_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +34,12 @@ export interface Document {
   file_url: string | null;
   extracted_data: Record<string, unknown> | null;
   created_by: string | null;
+  source: "upload" | "google_drive";
+  drive_file_id: string | null;
+  drive_web_view_link: string | null;
+  drive_mime_type: string | null;
+  drive_modified_time: string | null;
+  last_synced_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -132,7 +139,9 @@ export interface TicketMessage {
   ticket_id: string;
   sender_email: string;
   sender_role: string | null;
+  sender_name: string | null;
   content: string;
+  attachments: { name: string; url: string }[] | null;
   created_at: string;
 }
 
@@ -180,6 +189,18 @@ export interface Automation {
   config: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Message {
+  id: string;
+  client_id: string;
+  sender_id: string;
+  sender_role: "firm_admin" | "accountant" | "payroll_manager" | "client_admin" | "client_hr" | "client_readonly";
+  sender_name: string | null;
+  sender_email: string | null;
+  content: string;
+  read_at: string | null;
+  created_at: string;
 }
 
 export interface AuditLog {

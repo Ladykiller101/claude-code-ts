@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -48,11 +49,37 @@ const PRIORITY_COLORS = {
 export default function TicketList({ clientId, onSelectTicket }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("tous");
+  const queryClient = useQueryClient();
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["tickets", clientId],
     queryFn: () => db.tickets.list("-created_at"),
   });
+
+  // Realtime: auto-refresh when tickets are created or updated
+  useEffect(() => {
+    const supabase = createClient();
+    const filter = clientId ? `client_id=eq.${clientId}` : undefined;
+    const channel = supabase
+      .channel("tickets-list-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tickets",
+          ...(filter ? { filter } : {}),
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["tickets", clientId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clientId, queryClient]);
 
   const filteredTickets = useMemo(() => {
     let result = tickets;

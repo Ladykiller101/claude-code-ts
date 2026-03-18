@@ -84,9 +84,9 @@ export default function TicketForm({ open, onClose, onSave, clientId, prefillDat
         client_id: clientId,
         status: "nouveau",
         source: prefillData?.source || "manual",
-        attachments: attachments.length > 0 ? attachments : undefined,
         chatbot_context: prefillData?.chatbot_context || undefined,
-        created_at: new Date().toISOString(),
+        // Note: created_at is handled by the DB DEFAULT NOW() — don't send client-side timestamp
+        // Note: attachments are not a column on tickets table — they belong on ticket_messages
       };
 
       await onSave(ticketData);

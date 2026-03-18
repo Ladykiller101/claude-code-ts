@@ -72,7 +72,9 @@ import AppointmentList from "@/components/appointments/AppointmentList";
 import LegalChatbot from "@/components/chatbot/LegalChatbot";
 import DataExportButton from "@/components/gdpr/DataExportButton";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import MessageThread from "@/components/messages/MessageThread";
 import { useAuditLog } from "@/hooks/use-audit-log";
+import { useUnreadCount } from "@/hooks/use-messages";
 import { useDriveDocuments } from "@/hooks/use-drive-documents";
 
 export default function ClientPortal() {
@@ -90,6 +92,7 @@ export default function ClientPortal() {
 
   const { user: currentUser } = useAuth();
   const clientId = currentUser?.company_id;
+  const unreadMsgCount = useUnreadCount(clientId, currentUser?.id);
 
   // Filter data — firm_admin sees everything, clients see only their data
   const isFirmUserEarly = role === "firm_admin" || role === "accountant" || role === "payroll_manager";
@@ -277,9 +280,18 @@ export default function ClientPortal() {
             <FileText className="w-4 h-4" />
             Documents
           </TabsTrigger>
-          <TabsTrigger value="messages" className="data-[state=active]:bg-purple-600 gap-1.5">
+          <TabsTrigger value="messagerie" className="data-[state=active]:bg-purple-600 gap-1.5">
             <MessageSquare className="w-4 h-4" />
-            Messages
+            Messagerie
+            {unreadMsgCount > 0 && (
+              <Badge className="bg-red-500 text-white text-xs px-1.5 py-0 ml-1">
+                {unreadMsgCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="data-[state=active]:bg-purple-600 gap-1.5">
+            <Headset className="w-4 h-4" />
+            Tickets
             {openTicketCount > 0 && (
               <Badge className="bg-red-500 text-white text-xs px-1.5 py-0 ml-1">
                 {openTicketCount}
@@ -542,9 +554,19 @@ export default function ClientPortal() {
           </div>
         </TabsContent>
 
-        {/* -- Messages Tab -- */}
-        <TabsContent value="messages" className="space-y-6">
+        {/* -- Direct Messaging Tab -- */}
+        <TabsContent value="messagerie" className="space-y-6">
           <ErrorBoundary title="Erreur -- Messagerie" message="Le module de messagerie n'a pas pu se charger.">
+            <MessageThread
+              clientId={clientId}
+              currentUser={currentUser}
+            />
+          </ErrorBoundary>
+        </TabsContent>
+
+        {/* -- Tickets Tab -- */}
+        <TabsContent value="messages" className="space-y-6">
+          <ErrorBoundary title="Erreur -- Tickets" message="Le module de tickets n'a pas pu se charger.">
             {selectedTicket ? (
               <TicketDetail
                 ticket={selectedTicket}

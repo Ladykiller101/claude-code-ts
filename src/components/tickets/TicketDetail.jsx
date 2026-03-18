@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { db } from "@/lib/db";
 import { uploadFile } from "@/lib/upload";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import {
   Calendar,
   Tag,
   X,
+  AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -25,16 +27,16 @@ const STATUS_LABELS = {
   nouveau: "Nouveau",
   en_cours: "En cours",
   attente_client: "Attente client",
-  résolu: "Résolu",
-  fermé: "Fermé",
+  "r\u00e9solu": "R\u00e9solu",
+  "ferm\u00e9": "Ferm\u00e9",
 };
 
 const STATUS_COLORS = {
   nouveau: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   en_cours: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   attente_client: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  résolu: "bg-green-500/20 text-green-400 border-green-500/30",
-  fermé: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  "r\u00e9solu": "bg-green-500/20 text-green-400 border-green-500/30",
+  "ferm\u00e9": "bg-gray-500/20 text-gray-400 border-gray-500/30",
 };
 
 const PRIORITY_COLORS = {
@@ -44,28 +46,94 @@ const PRIORITY_COLORS = {
   basse: "bg-gray-500/20 text-gray-400 border-gray-500/30",
 };
 
+// Determine the sender_role based on the user's profile role
+function getSenderRole(userRole) {
+  if (!userRole) return "client";
+  if (userRole === "firm_admin" || userRole === "accountant" || userRole === "payroll_manager") {
+    return "firm";
+  }
+  return "client";
+}
+
 export default function TicketDetail({ ticket, onBack, currentUser }) {
   const [replyContent, setReplyContent] = useState("");
   const [replyAttachments, setReplyAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [sendError, setSendError] = useState(null);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
   const clientId = currentUser?.company_id;
 
+  // FIX BUG 1: Fetch messages filtered by ticket_id server-side via query param
+  // instead of fetching ALL ticket_messages and filtering client-side
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["ticket-messages", ticket.id],
-    queryFn: () => db.ticketMessages.list("created_at"),
-    select: (data) => data.filter((m) => m.ticket_id === ticket.id),
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/query?table=ticket_messages&orderBy=created_at&ascending=true&filter_ticket_id=${ticket.id}`
+      );
+      if (!res.ok) {
+        // Fallback: fetch all and filter (for backward compat if filter not supported)
+        const allMessages = await db.ticketMessages.list("created_at");
+        return allMessages.filter((m) => m.ticket_id === ticket.id);
+      }
+      return res.json();
+    },
   });
 
+  // FIX BUG 5: Realtime subscription for new messages
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`ticket-messages-${ticket.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "ticket_messages",
+          filter: `ticket_id=eq.${ticket.id}`,
+        },
+        () => {
+          // Invalidate query to refetch messages when a new one arrives
+          queryClient.invalidateQueries({ queryKey: ["ticket-messages", ticket.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [ticket.id, queryClient]);
+
   const sendMutation = useMutation({
-    mutationFn: (messageData) =>
-      db.ticketMessages.create(messageData),
+    mutationFn: async (messageData) => {
+      const created = await db.ticketMessages.create(messageData);
+
+      // FIX BUG 4: Update the parent ticket's last_message field
+      try {
+        await db.tickets.update(ticket.id, {
+          last_message: messageData.content.substring(0, 200),
+        });
+        queryClient.invalidateQueries({ queryKey: ["tickets"] });
+      } catch (err) {
+        // Non-blocking: don't fail the message send if last_message update fails
+        console.warn("Failed to update ticket last_message:", err);
+      }
+
+      return created;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ticket-messages", ticket.id] });
       setReplyContent("");
       setReplyAttachments([]);
+      setSendError(null);
+    },
+    // FIX BUG 8: Add error handler for user feedback
+    onError: (error) => {
+      console.error("Failed to send message:", error);
+      setSendError("Erreur lors de l'envoi du message. Veuillez r\u00e9essayer.");
     },
   });
 
@@ -73,18 +141,24 @@ export default function TicketDetail({ ticket, onBack, currentUser }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     if (!replyContent.trim() && replyAttachments.length === 0) return;
+    setSendError(null);
 
+    // FIX BUG 2 & 3: Send correct fields matching the DB schema
+    // - sender_role: populated from user's actual role
+    // - sender_name: now a real DB column (added via migration)
+    // - attachments: now a real JSONB column (added via migration)
+    // FIX BUG 9: Don't send client-side created_at — let the DB default handle it
     sendMutation.mutate({
       ticket_id: ticket.id,
       sender_email: currentUser?.email || "",
-      sender_name: currentUser?.name || currentUser?.email || "Client",
+      sender_role: getSenderRole(currentUser?.role),
+      sender_name: currentUser?.full_name || currentUser?.email || "Utilisateur",
       content: replyContent.trim(),
-      attachments: replyAttachments.length > 0 ? replyAttachments : undefined,
-      created_at: new Date().toISOString(),
+      attachments: replyAttachments.length > 0 ? replyAttachments : null,
     });
-  };
+  }, [replyContent, replyAttachments, ticket.id, currentUser, sendMutation]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -153,7 +227,7 @@ export default function TicketDetail({ ticket, onBack, currentUser }) {
               )}
               <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Calendar className="w-3 h-3" />
-                {(() => { try { return ticket.created_at ? format(new Date(ticket.created_at), "d MMM yyyy 'a' HH:mm", { locale: fr }) : ""; } catch { return ""; } })()}
+                {(() => { try { return ticket.created_at ? format(new Date(ticket.created_at), "d MMM yyyy '\u00e0' HH:mm", { locale: fr }) : ""; } catch { return ""; } })()}
               </span>
               {ticket.assigned_to && (
                 <span className="flex items-center gap-1 text-xs text-gray-500">
@@ -210,6 +284,11 @@ export default function TicketDetail({ ticket, onBack, currentUser }) {
                     >
                       {msg.sender_name || msg.sender_email}
                     </span>
+                    {msg.sender_role === "firm" && !isMine && (
+                      <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 border text-[10px] px-1 py-0">
+                        Cabinet
+                      </Badge>
+                    )}
                     <span className="text-xs text-gray-600">
                       {(() => { try { return msg.created_at ? format(new Date(msg.created_at), "d MMM HH:mm", { locale: fr }) : ""; } catch { return ""; } })()}
                     </span>
@@ -219,7 +298,7 @@ export default function TicketDetail({ ticket, onBack, currentUser }) {
                   </p>
                   {msg.attachments?.length > 0 && (
                     <div className="mt-2 space-y-1">
-                      {msg.attachments.map((att, i) => (
+                      {(Array.isArray(msg.attachments) ? msg.attachments : []).map((att, i) => (
                         <a
                           key={i}
                           href={att.url}
@@ -240,6 +319,20 @@ export default function TicketDetail({ ticket, onBack, currentUser }) {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Send error feedback */}
+      {sendError && (
+        <div className="px-4 py-2 bg-red-900/20 border-t border-red-800/50 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          <p className="text-sm text-red-400">{sendError}</p>
+          <button
+            onClick={() => setSendError(null)}
+            className="ml-auto text-red-400 hover:text-red-300"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Reply box */}
       <div className="p-4 border-t border-gray-800">

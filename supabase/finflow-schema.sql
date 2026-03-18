@@ -167,7 +167,9 @@ CREATE TABLE ticket_messages (
   ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
   sender_email TEXT NOT NULL,
   sender_role TEXT,
+  sender_name TEXT,
   content TEXT NOT NULL,
+  attachments JSONB DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

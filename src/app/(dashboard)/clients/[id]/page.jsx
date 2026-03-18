@@ -20,13 +20,21 @@ import {
   X,
   Loader2,
   Unplug,
+  MessageSquare,
+  Headset,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/lib/auth-context";
+import TicketList from "@/components/tickets/TicketList";
+import TicketDetail from "@/components/tickets/TicketDetail";
+import MessageThread from "@/components/messages/MessageThread";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   Select,
   SelectContent,
@@ -55,9 +63,9 @@ import { fr } from "date-fns/locale";
 import { useState } from "react";
 
 const safeFmt = (d, fmt) => {
-  if (!d) return "—";
+  if (!d) return "\u2014";
   const p = new Date(d);
-  return isNaN(p.getTime()) ? "—" : format(p, fmt, { locale: fr });
+  return isNaN(p.getTime()) ? "\u2014" : format(p, fmt, { locale: fr });
 };
 
 const categoryLabels = {
@@ -65,8 +73,8 @@ const categoryLabels = {
   devis: "Devis",
   contrat: "Contrat",
   bulletin_paie: "Bulletin de paie",
-  declaration_fiscale: "Déclaration fiscale",
-  releve_bancaire: "Relevé bancaire",
+  declaration_fiscale: "D\u00e9claration fiscale",
+  releve_bancaire: "Relev\u00e9 bancaire",
   autre: "Autre",
 };
 
@@ -81,19 +89,21 @@ const categoryColors = {
 };
 
 function getMimeIcon(mimeType) {
-  if (!mimeType) return "📄";
-  if (mimeType.includes("folder")) return "📁";
-  if (mimeType.includes("pdf")) return "📕";
-  if (mimeType.includes("sheet") || mimeType.includes("excel")) return "📊";
-  if (mimeType.includes("doc") || mimeType.includes("word")) return "📝";
-  if (mimeType.includes("image")) return "🖼️";
-  return "📄";
+  if (!mimeType) return "\ud83d\udcc4";
+  if (mimeType.includes("folder")) return "\ud83d\udcc1";
+  if (mimeType.includes("pdf")) return "\ud83d\udcd5";
+  if (mimeType.includes("sheet") || mimeType.includes("excel")) return "\ud83d\udcca";
+  if (mimeType.includes("doc") || mimeType.includes("word")) return "\ud83d\udcdd";
+  if (mimeType.includes("image")) return "\ud83d\uddbc\ufe0f";
+  return "\ud83d\udcc4";
 }
 
 export default function ClientDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const [selectedTicket, setSelectedTicket] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFileState, setUploadFileState] = useState(null);
@@ -164,6 +174,17 @@ export default function ClientDetailPage() {
     queryKey: ["documents"],
     queryFn: () => db.documents.list("-created_at"),
   });
+
+  // Fetch tickets for this client to show count in tab badge
+  const { data: clientTickets = [] } = useQuery({
+    queryKey: ["tickets", id],
+    queryFn: () => db.tickets.list("-created_at"),
+    select: (data) => data.filter((t) => t.client_id === id),
+    enabled: !!id,
+  });
+  const openTicketCount = clientTickets.filter(
+    (t) => !["r\u00e9solu", "ferm\u00e9", "resolu", "ferme"].includes(t.status)
+  ).length;
 
   const documents = allDocuments.filter((d) => d.client_id === id);
 
@@ -252,7 +273,7 @@ export default function ClientDetailPage() {
               className="border-red-900/50 text-red-400 hover:text-red-300 hover:bg-red-900/20"
             >
               <Unplug className="w-4 h-4 mr-2" />
-              Déconnecter Drive
+              D\u00e9connecter Drive
             </Button>
           </>
         )}
@@ -303,7 +324,7 @@ export default function ClientDetailPage() {
             {client.drive_folder_id && (
               <div className="flex items-center gap-2 text-xs text-emerald-400">
                 <HardDrive className="w-3.5 h-3.5" />
-                <span>Google Drive connecté</span>
+                <span>Google Drive connect\u00e9</span>
               </div>
             )}
           </div>
@@ -327,7 +348,7 @@ export default function ClientDetailPage() {
         <Card className="bg-[#13131a] border-[#1e1e2e]">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-white">{uploadedDocuments.length}</p>
-            <p className="text-xs text-gray-400 mt-1">Uploadés</p>
+            <p className="text-xs text-gray-400 mt-1">Upload\u00e9s</p>
           </CardContent>
         </Card>
         <Card className="bg-[#13131a] border-[#1e1e2e]">
@@ -339,6 +360,130 @@ export default function ClientDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tabbed content: Documents + Messages + Tickets */}
+      <Tabs defaultValue="documents" className="space-y-4">
+        <TabsList className="bg-[#13131a] border border-[#1e1e2e] p-1">
+          <TabsTrigger value="documents" className="data-[state=active]:bg-purple-600 gap-1.5">
+            <FolderOpen className="w-4 h-4" />
+            Documents ({documents.length})
+          </TabsTrigger>
+          <TabsTrigger value="messaging" className="data-[state=active]:bg-purple-600 gap-1.5">
+            <MessageSquare className="w-4 h-4" />
+            Messages
+          </TabsTrigger>
+          <TabsTrigger value="tickets" className="data-[state=active]:bg-purple-600 gap-1.5">
+            <Headset className="w-4 h-4" />
+            Tickets
+            {openTicketCount > 0 && (
+              <Badge className="bg-red-500 text-white text-xs px-1.5 py-0 ml-1">
+                {openTicketCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Documents Tab */}
+        <TabsContent value="documents">
+          <Card className="bg-[#13131a] border-[#1e1e2e]">
+            <CardContent className="p-6">
+              {docsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 rounded-lg" />
+                  ))}
+                </div>
+              ) : documents.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-400">Aucun document pour ce client</p>
+                  {client.drive_folder_id && (
+                    <p className="text-gray-500 text-sm mt-1">
+                      Cliquez sur &quot;Synchroniser&quot; pour importer depuis Google Drive
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {documents.map((doc, index) => (
+                    <motion.div
+                      key={doc.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      className="flex items-center justify-between p-3 bg-[#1a1a2e] rounded-lg hover:bg-[#1f1f35] transition-colors"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="text-lg">{getMimeIcon(doc.drive_mime_type)}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-white font-medium truncate">{doc.name}</p>
+                          <p className="text-gray-500 text-xs">
+                            {safeFmt(doc.drive_modified_time || doc.created_at, "d MMM yyyy")}
+                            {doc.source === "google_drive" && (
+                              <span className="ml-2 text-emerald-500">&#x25cf; Drive</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-xs px-2 py-0.5 rounded border ${
+                          categoryColors[doc.category] || categoryColors.autre
+                        }`}>
+                          {categoryLabels[doc.category] || doc.category}
+                        </span>
+                        <button
+                          onClick={() => window.open(`/api/documents/${doc.id}/download`, "_blank")}
+                          className="text-gray-400 hover:text-white transition-colors p-1"
+                          title="Voir le document"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </button>
+                        {doc.source !== "google_drive" && (
+                          <button
+                            onClick={() => window.open(`/api/documents/${doc.id}/download?download=true`, "_blank")}
+                            className="text-gray-400 hover:text-white transition-colors p-1"
+                            title="T\u00e9l\u00e9charger"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Direct Messages Tab -- Firm admins can message clients directly */}
+        <TabsContent value="messaging">
+          <ErrorBoundary title="Erreur -- Messagerie" message="Le module de messagerie n'a pas pu se charger.">
+            <MessageThread
+              clientId={id}
+              currentUser={currentUser}
+            />
+          </ErrorBoundary>
+        </TabsContent>
+
+        {/* Tickets Tab -- FIX BUG 6: Firm admins can now view and reply to client tickets */}
+        <TabsContent value="tickets">
+          <ErrorBoundary title="Erreur -- Tickets" message="Le module de tickets n'a pas pu se charger.">
+            {selectedTicket ? (
+              <TicketDetail
+                ticket={selectedTicket}
+                onBack={() => setSelectedTicket(null)}
+                currentUser={currentUser}
+              />
+            ) : (
+              <TicketList
+                clientId={id}
+                onSelectTicket={setSelectedTicket}
+              />
+            )}
+          </ErrorBoundary>
+        </TabsContent>
+      </Tabs>
 
       {/* Upload Dialog */}
       <Dialog open={showUpload} onOpenChange={setShowUpload}>
@@ -372,7 +517,7 @@ export default function ClientDetailPage() {
               ) : (
                 <>
                   <Upload className="w-10 h-10 text-gray-500 mx-auto" />
-                  <p className="mt-3 text-gray-400">Glissez-déposez votre fichier ici</p>
+                  <p className="mt-3 text-gray-400">Glissez-d\u00e9posez votre fichier ici</p>
                   <p className="text-sm text-gray-500 mt-1">ou</p>
                   <label className="mt-3 inline-block">
                     <span className="px-4 py-2 bg-purple-600 text-white rounded-lg cursor-pointer hover:bg-purple-700 transition-colors text-sm">
@@ -402,7 +547,7 @@ export default function ClientDetailPage() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Catégorie</Label>
+              <Label className="text-gray-300">Cat\u00e9gorie</Label>
               <Select value={uploadCategory} onValueChange={setUploadCategory}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -410,8 +555,8 @@ export default function ClientDetailPage() {
                   <SelectItem value="devis">Devis</SelectItem>
                   <SelectItem value="contrat">Contrat</SelectItem>
                   <SelectItem value="bulletin_paie">Bulletin de paie</SelectItem>
-                  <SelectItem value="declaration_fiscale">Déclaration fiscale</SelectItem>
-                  <SelectItem value="releve_bancaire">Relevé bancaire</SelectItem>
+                  <SelectItem value="declaration_fiscale">D\u00e9claration fiscale</SelectItem>
+                  <SelectItem value="releve_bancaire">Relev\u00e9 bancaire</SelectItem>
                   <SelectItem value="autre">Autre</SelectItem>
                 </SelectContent>
               </Select>
@@ -435,12 +580,12 @@ export default function ClientDetailPage() {
         <AlertDialogContent className="bg-[#13131a] border-[#1e1e2e]">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">
-              Déconnecter Google Drive ?
+              D\u00e9connecter Google Drive ?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
               Cette action supprimera la liaison Google Drive pour ce client.
-              Les documents synchronisés depuis Drive seront retirés de la plateforme.
-              Les fichiers sur Google Drive ne seront pas affectés.
+              Les documents synchronis\u00e9s depuis Drive seront retir\u00e9s de la plateforme.
+              Les fichiers sur Google Drive ne seront pas affect\u00e9s.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -459,91 +604,14 @@ export default function ClientDetailPage() {
               disabled={disconnecting}
             >
               {disconnecting ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Déconnexion...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />D\u00e9connexion...</>
               ) : (
-                <><Unplug className="w-4 h-4 mr-2" />Déconnecter</>
+                <><Unplug className="w-4 h-4 mr-2" />D\u00e9connecter</>
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Documents List */}
-      <Card className="bg-[#13131a] border-[#1e1e2e]">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <FolderOpen className="w-5 h-5 text-purple-400" />
-            Documents ({documents.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {docsLoading ? (
-            <div className="space-y-3">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-16 rounded-lg" />
-              ))}
-            </div>
-          ) : documents.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400">Aucun document pour ce client</p>
-              {client.drive_folder_id && (
-                <p className="text-gray-500 text-sm mt-1">
-                  Cliquez sur "Synchroniser" pour importer depuis Google Drive
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {documents.map((doc, index) => (
-                <motion.div
-                  key={doc.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  className="flex items-center justify-between p-3 bg-[#1a1a2e] rounded-lg hover:bg-[#1f1f35] transition-colors"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="text-lg">{getMimeIcon(doc.drive_mime_type)}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-white font-medium truncate">{doc.name}</p>
-                      <p className="text-gray-500 text-xs">
-                        {safeFmt(doc.drive_modified_time || doc.created_at, "d MMM yyyy")}
-                        {doc.source === "google_drive" && (
-                          <span className="ml-2 text-emerald-500">● Drive</span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-xs px-2 py-0.5 rounded border ${
-                      categoryColors[doc.category] || categoryColors.autre
-                    }`}>
-                      {categoryLabels[doc.category] || doc.category}
-                    </span>
-                    <button
-                      onClick={() => window.open(`/api/documents/${doc.id}/download`, "_blank")}
-                      className="text-gray-400 hover:text-white transition-colors p-1"
-                      title="Voir le document"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-                    {doc.source !== "google_drive" && (
-                      <button
-                        onClick={() => window.open(`/api/documents/${doc.id}/download?download=true`, "_blank")}
-                        className="text-gray-400 hover:text-white transition-colors p-1"
-                        title="Télécharger"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -1,72 +1,75 @@
-import { createClient } from "@/lib/supabase/client";
 import type {
   Client, Document, Task, Deadline, Invoice, Employee, HREvent,
   Ticket, TicketMessage, Appointment, Prospect, Automation, AuditLog,
+  Message,
 } from "@/types/database";
 
 function createEntity<T extends { id: string }>(tableName: string) {
   return {
     async list(orderBy?: string): Promise<T[]> {
-      const supabase = createClient();
-      let query = supabase.from(tableName).select("*");
-
+      const params = new URLSearchParams({ table: tableName });
       if (orderBy) {
         const desc = orderBy.startsWith("-");
         let field = desc ? orderBy.slice(1) : orderBy;
-        // Map Base44 field names to Supabase
         if (field === "created_date") field = "created_at";
         if (field === "updated_date") field = "updated_at";
-        query = query.order(field, { ascending: !desc });
-      } else {
-        query = query.order("created_at", { ascending: false });
+        params.set("orderBy", field);
+        params.set("ascending", String(!desc));
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data ?? []) as T[];
+      const res = await fetch(`/api/query?${params}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to fetch ${tableName}`);
+      }
+      return res.json();
     },
 
     async get(id: string): Promise<T> {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from(tableName)
-        .select("*")
-        .eq("id", id)
-        .single();
-      if (error) throw error;
-      return data as T;
+      const res = await fetch(`/api/query?table=${tableName}&id=${id}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to fetch ${tableName}`);
+      }
+      return res.json();
     },
 
     async create(record: Partial<T>): Promise<T> {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from(tableName)
-        .insert(record)
-        .select()
-        .single();
-      if (error) throw error;
-      return data as T;
+      const res = await fetch("/api/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _table: tableName, ...record }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to create ${tableName}`);
+      }
+      return res.json();
     },
 
     async update(id: string, record: Partial<T>): Promise<T> {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from(tableName)
-        .update(record)
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data as T;
+      const res = await fetch("/api/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _table: tableName, _method: "update", _id: id, ...record }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to update ${tableName}`);
+      }
+      return res.json();
     },
 
     async delete(id: string): Promise<void> {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from(tableName)
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
+      const res = await fetch("/api/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _table: tableName, _method: "delete", _id: id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to delete ${tableName}`);
+      }
     },
   };
 }
@@ -85,4 +88,5 @@ export const db = {
   prospects: createEntity<Prospect>("prospects"),
   automations: createEntity<Automation>("automations"),
   auditLogs: createEntity<AuditLog>("audit_logs"),
+  messages: createEntity<Message>("messages"),
 };
