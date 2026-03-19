@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -18,11 +17,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Use the server-side login endpoint which:
-      // 1. Checks if the user exists
-      // 2. Auto-confirms unconfirmed emails
-      // 3. Ensures profile exists
-      // 4. Returns precise error messages
+      // The login API sets auth cookies directly on the response via Set-Cookie headers.
+      // No client-side setSession() needed — the middleware will read those cookies.
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,20 +33,11 @@ export default function LoginPage() {
         return;
       }
 
-      // Set the browser session using tokens from the server response
-      const supabase = createClient();
-      if (data.access_token && data.refresh_token) {
-        await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
-      } else {
-        // Fallback: try direct sign-in
-        await supabase.auth.signInWithPassword({ email, password });
-      }
-
-      router.push(data.redirect || "/dashboard");
+      // Cookies are already set by the server response.
+      // router.refresh() forces Next.js to re-run middleware with the new cookies,
+      // then router.push() navigates to the authenticated page.
       router.refresh();
+      router.push(data.redirect || "/dashboard");
     } catch {
       setError("Erreur serveur, veuillez reessayer");
       setLoading(false);
