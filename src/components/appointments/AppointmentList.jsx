@@ -63,9 +63,7 @@ function AppointmentCard({ appointment, onCancel, onConfirm, onComplete }) {
             {scheduledDate && (
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
-                {format(scheduledDate, "d MMMM yyyy 'a' HH:mm", {
-                  locale: fr,
-                })}
+                {(() => { try { return format(scheduledDate, "d MMMM yyyy 'à' HH:mm", { locale: fr }); } catch { return "—"; } })()}
               </span>
             )}
             {appointment.duration_minutes && (
@@ -137,7 +135,7 @@ export default function AppointmentList({ clientId, currentUser }) {
   const [showForm, setShowForm] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: appointments = [], isLoading } = useQuery({
+  const { data: appointments = [], isLoading, isError, error } = useQuery({
     queryKey: ["appointments", clientId],
     queryFn: async () => {
       const all = await db.appointments.list("-scheduled_date");
@@ -213,7 +211,19 @@ export default function AppointmentList({ clientId, currentUser }) {
         </Button>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="text-center py-8 bg-[#14141f] rounded-xl border border-red-900/30 p-6">
+          <Clock className="w-10 h-10 text-red-400 mx-auto mb-3" />
+          <p className="text-red-300 font-medium">Erreur de chargement</p>
+          <p className="text-gray-500 text-sm mt-1">{error?.message || "Les rendez-vous n'ont pas pu être chargés."}</p>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["appointments", clientId] })}
+            className="mt-3 text-sm text-indigo-400 hover:text-indigo-300 underline"
+          >
+            Réessayer
+          </button>
+        </div>
+      ) : isLoading ? (
         <div className="text-gray-400 text-center py-8">Chargement...</div>
       ) : (
         <>

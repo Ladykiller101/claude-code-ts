@@ -28,7 +28,7 @@ export default function TaskForm({ task, clients, open, onClose, onSave }) {
     priority: "moyenne",
     status: "à_faire",
     due_date: "",
-    assigned_to: "",
+    assignee: "",
   });
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function TaskForm({ task, clients, open, onClose, onSave }) {
         priority: "moyenne",
         status: "à_faire",
         due_date: "",
-        assigned_to: "",
+        assignee: "",
       });
     }
   }, [task, open]);

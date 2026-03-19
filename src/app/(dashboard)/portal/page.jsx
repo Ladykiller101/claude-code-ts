@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { callN8n, N8N_WEBHOOKS } from "@/lib/n8n-client";
@@ -81,6 +81,7 @@ import DocumentViewer from "@/components/documents/DocumentViewer";
 import OCRScanner from "@/components/documents/OCRScanner";
 
 export default function ClientPortal() {
+  const [mounted, setMounted] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [chatbotContext, setChatbotContext] = useState(null);
@@ -91,6 +92,11 @@ export default function ClientPortal() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const { can, role } = useAuthorization();
+
+  // Hydration guard: defer rendering until client-side mount to prevent SSR mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const { logAction } = useAuditLog();
   const queryClient = useQueryClient();
 
@@ -185,7 +191,7 @@ export default function ClientPortal() {
   const userTasks = isFirmUser
     ? tasks.filter((t) => t.status !== "terminée" && t.status !== "terminee")
     : tasks.filter(
-        (t) => (t.assigned_to === currentUser?.email || t.client_id === clientId) && t.status !== "terminée" && t.status !== "terminee"
+        (t) => (t.assignee === currentUser?.email || t.assigned_to === currentUser?.email || t.client_id === clientId) && t.status !== "terminée" && t.status !== "terminee"
       );
 
   const clientTickets = isFirmUser
@@ -194,6 +200,14 @@ export default function ClientPortal() {
   const openTicketCount = clientTickets.filter(
     (t) => !["resolu", "ferme"].includes(t.status)
   ).length;
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-gray-400">Chargement du portail...</div>
+      </div>
+    );
+  }
 
   const handleEscalateFromChatbot = (context) => {
     setChatbotContext(context);
@@ -336,6 +350,7 @@ export default function ClientPortal() {
 
         {/* -- Overview Tab -- */}
         <TabsContent value="overview" className="space-y-6">
+          <ErrorBoundary title="Erreur -- Vue d'ensemble" message="La vue d'ensemble n'a pas pu se charger.">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-[#13131a] border-[#1e1e2e]">
               <CardHeader>
@@ -448,10 +463,12 @@ export default function ClientPortal() {
               </CardContent>
             </Card>
           </div>
+          </ErrorBoundary>
         </TabsContent>
 
         {/* -- Documents Tab -- */}
         <TabsContent value="documents" className="space-y-6">
+          <ErrorBoundary title="Erreur -- Documents" message="Le module de documents n'a pas pu se charger.">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <h3 className="text-lg font-semibold text-white">Mes documents</h3>
@@ -574,6 +591,7 @@ export default function ClientPortal() {
               ))
             )}
           </div>
+          </ErrorBoundary>
         </TabsContent>
 
         {/* -- Direct Messaging Tab -- */}
@@ -647,25 +665,27 @@ export default function ClientPortal() {
 
         {/* -- Signatures Tab -- */}
         <TabsContent value="signatures" className="space-y-6">
-          <Card className="bg-[#13131a] border-[#1e1e2e]">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <PenTool className="w-5 h-5 text-purple-400" />
-                Signature électronique
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <PenTool className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">
-                  Aucune signature en attente
-                </h3>
-                <p className="text-gray-400">
-                  Les documents nécessitant votre signature apparaîtront ici
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <ErrorBoundary title="Erreur -- Signatures" message="Le module de signatures n'a pas pu se charger.">
+            <Card className="bg-[#13131a] border-[#1e1e2e]">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <PenTool className="w-5 h-5 text-purple-400" />
+                  Signature électronique
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12">
+                  <PenTool className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-white mb-2">
+                    Aucune signature en attente
+                  </h3>
+                  <p className="text-gray-400">
+                    Les documents nécessitant votre signature apparaîtront ici
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </ErrorBoundary>
         </TabsContent>
       </Tabs>
 

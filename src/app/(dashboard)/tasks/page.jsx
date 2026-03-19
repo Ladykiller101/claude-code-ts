@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,6 +42,7 @@ const safeDate = (d) => { if (!d) return null; const p = new Date(d); return isN
 const safeFmt = (d, fmt) => { const p = safeDate(d); return p ? format(p, fmt, { locale: fr }) : "—"; };
 
 export default function Tasks() {
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -50,7 +51,12 @@ export default function Tasks() {
   const [editingTask, setEditingTask] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: tasks = [], isLoading } = useQuery({
+  // Hydration guard
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const { data: tasks = [], isLoading, isError, error } = useQuery({
     queryKey: ["tasks"],
     queryFn: () => db.tasks.list("-created_date"),
   });
@@ -110,7 +116,7 @@ export default function Tasks() {
   };
 
   const handleStatusChange = (task, newStatus) => {
-    updateMutation.mutate({ id: task.id, data: { ...task, status: newStatus } });
+    updateMutation.mutate({ id: task.id, data: { status: newStatus } });
   };
 
   const filteredTasks = tasks.filter((task) => {
@@ -205,7 +211,22 @@ export default function Tasks() {
       </div>
 
       {/* Tasks List */}
-      {isLoading ? (
+      {isError ? (
+        <div className="text-center py-12 bg-[#13131a] rounded-2xl border border-red-900/30">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
+          <h3 className="mt-4 text-lg font-medium text-white">Erreur de chargement</h3>
+          <p className="text-gray-400 mt-1 max-w-md mx-auto">
+            {error?.message || "Les tâches n'ont pas pu être chargées. Veuillez rafraîchir la page."}
+          </p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
+          >
+            Réessayer
+          </Button>
+        </div>
+      ) : !mounted || isLoading ? (
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-2xl" />

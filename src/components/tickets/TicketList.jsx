@@ -51,7 +51,7 @@ export default function TicketList({ clientId, onSelectTicket }) {
   const [statusFilter, setStatusFilter] = useState("tous");
   const queryClient = useQueryClient();
 
-  const { data: tickets = [], isLoading } = useQuery({
+  const { data: tickets = [], isLoading, isError, error } = useQuery({
     queryKey: ["tickets", clientId],
     queryFn: () => db.tickets.list("-created_at"),
   });
@@ -114,6 +114,24 @@ export default function TicketList({ clientId, onSelectTicket }) {
       <div className="bg-[#14141f] rounded-xl border border-gray-800 p-8">
         <div className="flex items-center justify-center text-gray-400">
           Chargement des tickets...
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="bg-[#14141f] rounded-xl border border-red-900/30 p-8">
+        <div className="flex flex-col items-center justify-center text-center space-y-3">
+          <Inbox className="w-10 h-10 text-red-400" />
+          <p className="text-red-300 font-medium">Erreur de chargement des tickets</p>
+          <p className="text-gray-500 text-sm max-w-md">{error?.message || "Veuillez rafraîchir la page."}</p>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["tickets", clientId] })}
+            className="text-sm text-indigo-400 hover:text-indigo-300 underline"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     );

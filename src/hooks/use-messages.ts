@@ -17,20 +17,14 @@ export function useMessages(clientId: string | null | undefined) {
   } = useQuery<Message[]>({
     queryKey,
     queryFn: async () => {
-      const params = new URLSearchParams({
-        table: "messages",
-        orderBy: "created_at",
-        ascending: "true",
-      });
-      const res = await fetch(`/api/query?${params}`);
+      // Use the dedicated messages GET endpoint which filters by client_id
+      // server-side for both firm and client users
+      const res = await fetch(`/api/messages?client_id=${encodeURIComponent(clientId!)}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to fetch messages");
       }
-      const data: Message[] = await res.json();
-      // Filter by client_id (the query route already filters for client roles,
-      // but firm users get all — we filter on the frontend for the specific client)
-      return clientId ? data.filter((m) => m.client_id === clientId) : [];
+      return res.json() as Promise<Message[]>;
     },
     enabled: !!clientId,
     refetchInterval: 30000, // Fallback polling every 30s
@@ -131,4 +125,24 @@ export function useUnreadCount(
   return messages.filter(
     (m) => !m.read_at && m.sender_id !== currentUserId
   ).length;
+}
+
+/**
+ * Global unread message count — for the sidebar badge.
+ * For firm users: counts unread messages across ALL clients (sent by non-firm users).
+ * For client users: counts unread messages for their company_id (sent by non-client users).
+ */
+export function useGlobalUnreadCount(currentUserId: string | null | undefined) {
+  const { data: count = 0 } = useQuery<number>({
+    queryKey: ["messages-unread-global", currentUserId],
+    queryFn: async () => {
+      const res = await fetch("/api/messages/unread-count");
+      if (!res.ok) return 0;
+      const data = await res.json();
+      return data.count ?? 0;
+    },
+    enabled: !!currentUserId,
+    refetchInterval: 30000, // Poll every 30s
+  });
+  return count;
 }

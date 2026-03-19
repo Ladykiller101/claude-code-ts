@@ -60,7 +60,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DocumentViewer from "@/components/documents/DocumentViewer";
 
 const safeFmt = (d, fmt) => {
@@ -100,11 +100,17 @@ function getMimeIcon(mimeType) {
 }
 
 export default function ClientDetailPage() {
+  const [mounted, setMounted] = useState(false);
   const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
   const [selectedTicket, setSelectedTicket] = useState(null);
+
+  // Hydration guard
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [syncing, setSyncing] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFileState, setUploadFileState] = useState(null);
@@ -210,7 +216,7 @@ export default function ClientDetailPage() {
     }
   };
 
-  if (clientLoading) {
+  if (!mounted || clientLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />

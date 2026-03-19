@@ -119,6 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
     await supabase.auth.signOut();
     setUser(null);
+    // Force hard navigation to fully clear cookies, cache, and client-side state
+    window.location.href = "/login";
   };
 
   return (

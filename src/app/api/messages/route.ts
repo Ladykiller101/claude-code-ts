@@ -31,6 +31,46 @@ function isClientRole(role: string) {
   return role.startsWith("client_");
 }
 
+// GET /api/messages?client_id=xxx — fetch messages for a specific client
+export async function GET(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const clientId = request.nextUrl.searchParams.get("client_id");
+    if (!clientId) {
+      return NextResponse.json(
+        { error: "client_id query parameter is required" },
+        { status: 400 }
+      );
+    }
+
+    // Client users can only fetch messages for their own company
+    if (isClientRole(user.role)) {
+      if (user.company_id !== clientId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+
+    return NextResponse.json(data ?? []);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to fetch messages";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 // POST /api/messages — send a message
 export async function POST(request: NextRequest) {
   try {

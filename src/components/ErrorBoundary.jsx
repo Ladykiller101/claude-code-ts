@@ -20,6 +20,7 @@ export default class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const errorMessage = this.state.error?.message || "";
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
           <AlertTriangle className="w-10 h-10 text-yellow-500" />
@@ -29,6 +30,14 @@ export default class ErrorBoundary extends React.Component {
           <p className="text-sm text-gray-400 max-w-md">
             {this.props.message || "Ce module n'a pas pu se charger. Veuillez réessayer."}
           </p>
+          {errorMessage && (
+            <details className="text-xs text-gray-500 max-w-lg w-full">
+              <summary className="cursor-pointer hover:text-gray-300">Détails techniques</summary>
+              <pre className="mt-2 p-3 bg-[#0a0a0f] rounded-lg text-left overflow-x-auto whitespace-pre-wrap break-all border border-gray-800">
+                {errorMessage}
+              </pre>
+            </details>
+          )}
           <Button
             variant="outline"
             size="sm"

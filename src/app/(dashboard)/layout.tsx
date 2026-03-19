@@ -1,45 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import {
   LayoutDashboard, Users, FileText, CheckSquare, Calendar,
   Receipt, Menu, X, ChevronRight, LogOut, BarChart3, Bot
 } from "lucide-react";
+import { useGlobalUnreadCount } from "@/hooks/use-messages";
 
 const allNavigation = [
-  { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard, roles: ["accountant", "payroll_manager", "firm_admin"] },
-  { name: "Portail Client", href: "/portal", icon: Users, roles: ["client_admin", "client_hr", "client_readonly"] },
-  { name: "Clients", href: "/clients", icon: Users, roles: ["accountant", "payroll_manager", "firm_admin"] },
-  { name: "CRM", href: "/crm", icon: Users, roles: ["firm_admin"] },
-  { name: "Documents", href: "/documents", icon: FileText, roles: ["accountant", "payroll_manager", "firm_admin", "client_admin", "client_hr", "client_readonly"] },
-  { name: "Tâches", href: "/tasks", icon: CheckSquare, roles: ["accountant", "payroll_manager", "firm_admin", "client_admin"] },
-  { name: "Échéances", href: "/deadlines", icon: Calendar, roles: ["accountant", "payroll_manager", "firm_admin", "client_admin"] },
-  { name: "Factures", href: "/invoices", icon: Receipt, roles: ["accountant", "firm_admin", "client_admin"] },
-  { name: "Analytics IA", href: "/analytics", icon: BarChart3, roles: ["accountant", "firm_admin"] },
-  { name: "Automatisation", href: "/automation", icon: Bot, roles: ["firm_admin"] },
+  { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard, roles: ["accountant", "payroll_manager", "firm_admin"], badge: null },
+  { name: "Portail Client", href: "/portal", icon: Users, roles: ["client_admin", "client_hr", "client_readonly"], badge: "messages" },
+  { name: "Clients", href: "/clients", icon: Users, roles: ["accountant", "payroll_manager", "firm_admin"], badge: "messages" },
+  { name: "CRM", href: "/crm", icon: Users, roles: ["firm_admin"], badge: null },
+  { name: "Documents", href: "/documents", icon: FileText, roles: ["accountant", "payroll_manager", "firm_admin", "client_admin", "client_hr", "client_readonly"], badge: null },
+  { name: "Tâches", href: "/tasks", icon: CheckSquare, roles: ["accountant", "payroll_manager", "firm_admin", "client_admin"], badge: null },
+  { name: "Échéances", href: "/deadlines", icon: Calendar, roles: ["accountant", "payroll_manager", "firm_admin", "client_admin"], badge: null },
+  { name: "Factures", href: "/invoices", icon: Receipt, roles: ["accountant", "firm_admin", "client_admin"], badge: null },
+  { name: "Analytics IA", href: "/analytics", icon: BarChart3, roles: ["accountant", "firm_admin"], badge: null },
+  { name: "Automatisation", href: "/automation", icon: Bot, roles: ["firm_admin"], badge: null },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   const { user, signOut, isLoading } = useAuth();
 
+  // Hydration guard: prevent SSR/client mismatch by deferring full render
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const role = user?.role || "firm_admin";
+  const unreadMsgCount = useGlobalUnreadCount(user?.id);
 
   const navigation = allNavigation.filter(
     (item) => item.roles.includes("all") || item.roles.includes(role)
   );
 
   const handleLogout = async () => {
+    // signOut() handles the hard redirect via window.location.href
     await signOut();
-    router.push("/login");
   };
 
-  if (isLoading) {
+  // Show loading state both when not yet mounted (SSR/hydration) and while auth is loading.
+  // Using the same JSX for both SSR and initial client render prevents hydration mismatch.
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
         <div className="animate-pulse text-gray-400">Chargement...</div>
@@ -116,7 +125,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     }`}
                   />
                   <span className="font-medium">{item.name}</span>
-                  {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                  {item.badge === "messages" && unreadMsgCount > 0 ? (
+                    <span className="ml-auto bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">
+                      {unreadMsgCount > 99 ? "99+" : unreadMsgCount}
+                    </span>
+                  ) : isActive ? (
+                    <ChevronRight className="w-4 h-4 ml-auto" />
+                  ) : null}
                 </Link>
               );
             })}
