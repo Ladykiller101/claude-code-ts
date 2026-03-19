@@ -116,10 +116,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchProfile]);
 
   const signOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      // 1. Clear server-side cookies via API route
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      console.warn("Server logout failed:", e);
+    }
+    try {
+      // 2. Clear client-side Supabase session
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Client signOut failed:", e);
+    }
+    // 3. Clear user state
     setUser(null);
-    // Force hard navigation to fully clear cookies, cache, and client-side state
+    // 4. Force hard navigation to fully clear everything
     window.location.href = "/login";
   };
 
