@@ -61,6 +61,7 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useState } from "react";
+import DocumentViewer from "@/components/documents/DocumentViewer";
 
 const safeFmt = (d, fmt) => {
   if (!d) return "\u2014";
@@ -110,8 +111,10 @@ export default function ClientDetailPage() {
   const [uploadName, setUploadName] = useState("");
   const [uploadCategory, setUploadCategory] = useState("autre");
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [showDisconnect, setShowDisconnect] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [viewerDocId, setViewerDocId] = useState(null);
 
   const handleDriveDisconnect = async () => {
     setDisconnecting(true);
@@ -140,6 +143,7 @@ export default function ClientDetailPage() {
     e.preventDefault();
     if (!uploadFileState) return;
     setUploading(true);
+    setUploadError("");
     try {
       const formData = new FormData();
       formData.append("file", uploadFileState);
@@ -153,12 +157,14 @@ export default function ClientDetailPage() {
         throw new Error(err.error || "Upload failed");
       }
       queryClient.invalidateQueries({ queryKey: ["documents"] });
+      setUploadError("");
       setShowUpload(false);
       setUploadFileState(null);
       setUploadName("");
       setUploadCategory("autre");
     } catch (err) {
       console.error("Upload failed:", err);
+      setUploadError(err.message || "Erreur lors de l'upload, veuillez reessayer");
     } finally {
       setUploading(false);
     }
@@ -432,7 +438,7 @@ export default function ClientDetailPage() {
                           {categoryLabels[doc.category] || doc.category}
                         </span>
                         <button
-                          onClick={() => window.open(`/api/documents/${doc.id}/download`, "_blank")}
+                          onClick={() => setViewerDocId(doc.id)}
                           className="text-gray-400 hover:text-white transition-colors p-1"
                           title="Voir le document"
                         >
@@ -492,6 +498,11 @@ export default function ClientDetailPage() {
             <DialogTitle>Envoyer un document au client</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleUploadSubmit} className="space-y-4 mt-4">
+            {uploadError && (
+              <div className="bg-red-900/30 border border-red-700/50 text-red-300 rounded-lg px-4 py-3 text-sm">
+                {uploadError}
+              </div>
+            )}
             <div
               onDrop={(e) => {
                 e.preventDefault();
@@ -612,6 +623,12 @@ export default function ClientDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentViewer
+        documentId={viewerDocId}
+        open={!!viewerDocId}
+        onClose={() => setViewerDocId(null)}
+      />
     </div>
   );
 }

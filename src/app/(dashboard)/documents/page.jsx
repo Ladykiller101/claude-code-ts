@@ -15,7 +15,8 @@ import {
   Eye,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  ScanLine
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import DocumentUpload from "@/components/documents/DocumentUpload";
+import DocumentViewer from "@/components/documents/DocumentViewer";
+import OCRScanner from "@/components/documents/OCRScanner";
 
 const safeFmt = (d, fmt) => { if (!d) return "—"; const p = new Date(d); return isNaN(p.getTime()) ? "—" : format(p, fmt, { locale: fr }); };
 import OCRProcessor from "@/components/documents/OCRProcessor";
@@ -54,7 +57,9 @@ export default function Documents() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [ocrScannerOpen, setOcrScannerOpen] = useState(false);
   const [ocrDocument, setOcrDocument] = useState(null);
+  const [viewerDocId, setViewerDocId] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: documents = [], isLoading } = useQuery({
@@ -158,13 +163,23 @@ export default function Documents() {
           <h1 className="text-2xl lg:text-3xl font-bold text-white">Documents - SYGMA Conseils</h1>
           <p className="text-gray-400 mt-1">Centralisez et gérez vos documents</p>
         </div>
-        <Button
-          onClick={() => setUploadOpen(true)}
-          className="bg-[#1e3a5f] hover:bg-[#2d4a6f]"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Uploader
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setOcrScannerOpen(true)}
+            variant="outline"
+            className="border-indigo-600/50 text-indigo-400 hover:bg-indigo-900/30 hover:text-indigo-300"
+          >
+            <ScanLine className="w-4 h-4 mr-2" />
+            Scanner OCR
+          </Button>
+          <Button
+            onClick={() => setUploadOpen(true)}
+            className="bg-[#1e3a5f] hover:bg-[#2d4a6f]"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Uploader
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -277,7 +292,7 @@ export default function Documents() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => window.open(`/api/documents/${doc.id}/download`, "_blank")}
+                          onClick={() => setViewerDocId(doc.id)}
                           title="Voir le document"
                         >
                           <Eye className="w-4 h-4" />
@@ -344,6 +359,22 @@ export default function Documents() {
           onSave={handleOCRComplete}
         />
       )}
+
+      <DocumentViewer
+        documentId={viewerDocId}
+        open={!!viewerDocId}
+        onClose={() => setViewerDocId(null)}
+      />
+
+      <OCRScanner
+        clients={clients}
+        open={ocrScannerOpen}
+        onClose={() => setOcrScannerOpen(false)}
+        onSave={() => {
+          queryClient.invalidateQueries({ queryKey: ["documents"] });
+          setOcrScannerOpen(false);
+        }}
+      />
     </div>
   );
 }

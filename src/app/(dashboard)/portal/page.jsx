@@ -25,6 +25,7 @@ import {
   RefreshCw,
   CloudOff,
   Unplug,
+  ScanLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,6 +77,8 @@ import MessageThread from "@/components/messages/MessageThread";
 import { useAuditLog } from "@/hooks/use-audit-log";
 import { useUnreadCount } from "@/hooks/use-messages";
 import { useDriveDocuments } from "@/hooks/use-drive-documents";
+import DocumentViewer from "@/components/documents/DocumentViewer";
+import OCRScanner from "@/components/documents/OCRScanner";
 
 export default function ClientPortal() {
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -86,6 +89,7 @@ export default function ClientPortal() {
   const [uploadName, setUploadName] = useState("");
   const [uploadCategory, setUploadCategory] = useState("autre");
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const { can, role } = useAuthorization();
   const { logAction } = useAuditLog();
   const queryClient = useQueryClient();
@@ -107,6 +111,8 @@ export default function ClientPortal() {
   const [syncingDrive, setSyncingDrive] = useState(false);
   const [showDisconnect, setShowDisconnect] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [viewerDocId, setViewerDocId] = useState(null);
+  const [ocrScannerOpen, setOcrScannerOpen] = useState(false);
 
   const handleDriveDisconnect = async () => {
     setDisconnecting(true);
@@ -146,6 +152,11 @@ export default function ClientPortal() {
       setSyncingDrive(false);
     }
   };
+
+  const { data: portalClients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => db.clients.list(),
+  });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
@@ -193,6 +204,7 @@ export default function ClientPortal() {
     e.preventDefault();
     if (!uploadFileState) return;
     setUploading(true);
+    setUploadError("");
     try {
       const formData = new FormData();
       formData.append("file", uploadFileState);
@@ -207,12 +219,14 @@ export default function ClientPortal() {
       }
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       logAction("upload", "Document", null, { name: uploadName || uploadFileState.name });
+      setUploadError("");
       setShowUpload(false);
       setUploadFileState(null);
       setUploadName("");
       setUploadCategory("autre");
     } catch (err) {
       console.error("Upload failed:", err);
+      setUploadError(err.message || "Erreur lors de l'upload, veuillez reessayer");
     } finally {
       setUploading(false);
     }
@@ -474,6 +488,14 @@ export default function ClientPortal() {
                   </Button>
                 </>
               )}
+              <Button
+                variant="outline"
+                className="border-indigo-600/50 text-indigo-400 hover:bg-indigo-900/30 hover:text-indigo-300"
+                onClick={() => setOcrScannerOpen(true)}
+              >
+                <ScanLine className="w-4 h-4 mr-2" />
+                Scanner OCR
+              </Button>
               <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => setShowUpload(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Téléverser
@@ -528,7 +550,7 @@ export default function ClientPortal() {
                         className="text-gray-400 hover:text-white"
                         onClick={() => {
                           logAction("view", "Document", doc.id, { name: doc.name });
-                          window.open(`/api/documents/${doc.id}/download`, "_blank");
+                          setViewerDocId(doc.id);
                         }}
                       >
                         <Eye className="w-4 h-4 mr-1" /> Voir
@@ -692,6 +714,11 @@ export default function ClientPortal() {
             <DialogTitle>Téléverser un document</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleUploadSubmit} className="space-y-4 mt-4">
+            {uploadError && (
+              <div className="bg-red-900/30 border border-red-700/50 text-red-300 rounded-lg px-4 py-3 text-sm">
+                {uploadError}
+              </div>
+            )}
             <div
               onDrop={(e) => {
                 e.preventDefault();
@@ -815,6 +842,22 @@ export default function ClientPortal() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentViewer
+        documentId={viewerDocId}
+        open={!!viewerDocId}
+        onClose={() => setViewerDocId(null)}
+      />
+
+      <OCRScanner
+        clients={portalClients}
+        open={ocrScannerOpen}
+        onClose={() => setOcrScannerOpen(false)}
+        onSave={() => {
+          queryClient.invalidateQueries({ queryKey: ["documents"] });
+          setOcrScannerOpen(false);
+        }}
+      />
     </div>
   );
 }
