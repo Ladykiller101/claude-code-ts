@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import {
   AreaChart,
   Area,
@@ -31,7 +32,13 @@ import {
   Brain,
   Layers,
   Settings,
+  ArrowUpDown,
 } from "lucide-react";
+
+const ExecuteTradeModal = dynamic(
+  () => import("@/components/trading/ExecuteTradeModal"),
+  { ssr: false },
+);
 import { useRouter } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -131,6 +138,7 @@ export default function TradingDashboard() {
   const [activeTab, setActiveTab] = useState<"overview" | "trades" | "agents">(
     "overview"
   );
+  const [showExecuteModal, setShowExecuteModal] = useState(false);
 
   useEffect(() => {
     // Inject custom styles
@@ -267,6 +275,16 @@ export default function TradingDashboard() {
               ))}
             </div>
 
+            {/* Execute Trade */}
+            <button
+              onClick={() => setShowExecuteModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition-colors text-white text-xs font-medium"
+              style={{ fontFamily: "JetBrains Mono, monospace" }}
+            >
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              TRADE
+            </button>
+
             {/* Settings */}
             <button
               onClick={() => router.push("/trading/settings")}
@@ -297,6 +315,12 @@ export default function TradingDashboard() {
           {activeTab === "agents" && <AgentsTab key="agents" data={data} />}
         </AnimatePresence>
       </main>
+
+      {/* ─── Execute Trade Modal ─────────────────────────────── */}
+      <ExecuteTradeModal
+        open={showExecuteModal}
+        onClose={() => setShowExecuteModal(false)}
+      />
 
       {/* ─── Footer ticker ──────────────────────────────────── */}
       <footer className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-[#06060a]/90 backdrop-blur-sm">

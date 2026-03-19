@@ -52,7 +52,6 @@ const BROKER_REGISTRY: BrokerDefinition[] = [
     requiredCredentials: [
       { key: "api_key", label: "API Key", type: "text" },
       { key: "api_secret", label: "API Secret", type: "password" },
-      { key: "passphrase", label: "Passphrase", type: "password" },
     ],
   },
   {
