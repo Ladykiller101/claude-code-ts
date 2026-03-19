@@ -67,6 +67,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         redirect: isClient ? "/portal" : "/dashboard",
+        access_token: signInResult.access_token,
+        refresh_token: signInResult.refresh_token,
         user: {
           id: userId,
           email: signInResult.user.email,

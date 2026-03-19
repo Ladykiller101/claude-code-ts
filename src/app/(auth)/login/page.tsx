@@ -37,17 +37,16 @@ export default function LoginPage() {
         return;
       }
 
-      // Server-side login set the cookies via the server client.
-      // Now sync the browser client by signing in client-side too.
+      // Set the browser session using tokens from the server response
       const supabase = createClient();
-      const { error: clientError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (clientError) {
-        // Server login succeeded but client sync failed — try to navigate anyway
-        console.warn("Client-side sync failed (server login OK):", clientError.message);
+      if (data.access_token && data.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+      } else {
+        // Fallback: try direct sign-in
+        await supabase.auth.signInWithPassword({ email, password });
       }
 
       router.push(data.redirect || "/dashboard");
