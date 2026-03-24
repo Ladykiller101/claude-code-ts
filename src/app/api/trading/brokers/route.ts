@@ -144,6 +144,20 @@ const BROKER_REGISTRY: BrokerDefinition[] = [
     comingSoon: true,
   },
   {
+    id: "hyperliquid",
+    name: "Hyperliquid",
+    category: "crypto",
+    description: "On-chain perpetual futures DEX with deep liquidity and low fees",
+    supportedAssets: [
+      "BTC-PERP", "ETH-PERP", "SOL-PERP", "ARB-PERP", "DOGE-PERP",
+      "AVAX-PERP", "MATIC-PERP", "LINK-PERP", "OP-PERP", "APT-PERP",
+    ],
+    requiredCredentials: [
+      { key: "wallet_address", label: "Wallet Address", type: "text" },
+      { key: "agent_private_key", label: "Agent Private Key", type: "password" },
+    ],
+  },
+  {
     id: "bloomberg",
     name: "Bloomberg Terminal",
     category: "all",

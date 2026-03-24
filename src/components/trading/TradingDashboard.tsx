@@ -39,6 +39,15 @@ const ExecuteTradeModal = dynamic(
   () => import("@/components/trading/ExecuteTradeModal"),
   { ssr: false },
 );
+const PriceChart = dynamic(
+  () => import("@/components/trading/PriceChart"),
+  { ssr: false },
+);
+const HyperliquidPanel = dynamic(
+  () => import("@/components/trading/HyperliquidPanel"),
+  { ssr: false },
+);
+import UserMenu from "@/components/UserMenu";
 import { useRouter } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -135,10 +144,11 @@ export default function TradingDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedTrade, setExpandedTrade] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "trades" | "agents">(
+  const [activeTab, setActiveTab] = useState<"overview" | "trades" | "agents" | "hyperliquid">(
     "overview"
   );
   const [showExecuteModal, setShowExecuteModal] = useState(false);
+  const [hlSymbol, setHlSymbol] = useState("BTC-PERP");
 
   useEffect(() => {
     // Inject custom styles
@@ -259,7 +269,7 @@ export default function TradingDashboard() {
 
             {/* Nav tabs */}
             <div className="flex gap-1 bg-white/[0.03] rounded-lg p-1">
-              {(["overview", "trades", "agents"] as const).map((tab) => (
+              {(["overview", "trades", "agents", "hyperliquid"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -293,6 +303,9 @@ export default function TradingDashboard() {
             >
               <Settings className="w-4 h-4" />
             </button>
+
+            {/* User Menu */}
+            <UserMenu />
           </div>
         </div>
       </header>
@@ -313,6 +326,13 @@ export default function TradingDashboard() {
             />
           )}
           {activeTab === "agents" && <AgentsTab key="agents" data={data} />}
+          {activeTab === "hyperliquid" && (
+            <HyperliquidTab
+              key="hyperliquid"
+              symbol={hlSymbol}
+              onSymbolChange={setHlSymbol}
+            />
+          )}
         </AnimatePresence>
       </main>
 
@@ -1299,5 +1319,37 @@ function OpenPositionRow({ trade }: { trade: Record<string, unknown> }) {
         </span>
       </div>
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HYPERLIQUID TAB
+// ═══════════════════════════════════════════════════════════════
+function HyperliquidTab({
+  symbol,
+  onSymbolChange,
+}: {
+  symbol: string;
+  onSymbolChange: (s: string) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.3 }}
+      className="pb-12"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-180px)]">
+        {/* Chart — takes 2/3 on desktop */}
+        <div className="lg:col-span-2 min-h-[400px]">
+          <PriceChart symbol={symbol} />
+        </div>
+        {/* Trading panel — takes 1/3 on desktop */}
+        <div className="min-h-[400px]">
+          <HyperliquidPanel onSymbolChange={onSymbolChange} />
+        </div>
+      </div>
+    </motion.div>
   );
 }

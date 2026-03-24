@@ -37,7 +37,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/dashboard") ||
-    pathname.startsWith("/api/google/drive/sync")
+    pathname.startsWith("/api/google/drive/sync") ||
+    pathname.startsWith("/api/hyperliquid/market") ||
+    pathname.startsWith("/api/hyperliquid/orderbook") ||
+    pathname.startsWith("/api/hyperliquid/candles")
   ) {
     return supabaseResponse;
   }
