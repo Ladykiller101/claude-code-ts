@@ -292,14 +292,32 @@ export default function TradingSettings() {
     if (!selectedBroker) return;
     setSaving(true);
     try {
-      await fetch("/api/trading/brokers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brokerId: selectedBroker.id,
-          credentials,
-        }),
-      });
+      // For Hyperliquid, use the dedicated wallet API (persists to Supabase)
+      if (selectedBroker.id === "hyperliquid") {
+        const res = await fetch("/api/hyperliquid/wallet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: credentials.wallet_address,
+            agentPrivateKey: credentials.agent_private_key,
+            label: "Default",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          setTestResult({ success: false, error: data.error || "Failed to connect wallet" });
+          return;
+        }
+      } else {
+        await fetch("/api/trading/brokers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            brokerId: selectedBroker.id,
+            credentials,
+          }),
+        });
+      }
       setBrokers((prev) =>
         prev.map((b) =>
           b.id === selectedBroker.id ? { ...b, status: "connected" as const } : b
@@ -309,7 +327,7 @@ export default function TradingSettings() {
       setCredentials({});
       setTestResult(null);
     } catch {
-      // Silently handle
+      setTestResult({ success: false, error: "Network error" });
     } finally {
       setSaving(false);
     }
