@@ -9,8 +9,15 @@
  * the action using EIP-712 typed data. We use viem for signing.
  */
 
-const INFO_URL = "https://api.hyperliquid.xyz/info";
-const EXCHANGE_URL = "https://api.hyperliquid.xyz/exchange";
+// Toggle between testnet and mainnet:
+// - Testnet: https://api.hyperliquid-testnet.xyz  (use for testing with fake funds)
+// - Mainnet: https://api.hyperliquid.xyz           (use for real trading)
+const HYPERLIQUID_BASE = process.env.HYPERLIQUID_TESTNET === "1"
+  ? "https://api.hyperliquid-testnet.xyz"
+  : "https://api.hyperliquid.xyz";
+
+const INFO_URL = `${HYPERLIQUID_BASE}/info`;
+const EXCHANGE_URL = `${HYPERLIQUID_BASE}/exchange`;
 
 // ---------------------------------------------------------------------------
 // Types
