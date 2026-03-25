@@ -164,7 +164,19 @@ export default function TradingDashboard() {
     fetch("/api/trading")
       .then((r) => r.json())
       .then((d) => {
-        setData(d);
+        if (d.error) {
+          // API returned an error — use empty trading data
+          setData({
+            summary: {
+              totalPnl: 0, totalTrades: 0, winRate: 0, activeTrades: 0,
+              totalVolume: 0, avgReturn: 0, bestTrade: 0, worstTrade: 0, sharpeRatio: 0,
+            },
+            trades: [],
+            agents: [],
+          } as TradingData);
+        } else {
+          setData(d);
+        }
         setLoading(false);
       })
       .catch((e) => {
@@ -203,7 +215,10 @@ export default function TradingDashboard() {
     );
   }
 
-  const { summary } = data;
+  const summary = data.summary ?? {
+    totalPnl: 0, totalTrades: 0, winRate: 0, activeTrades: 0,
+    totalVolume: 0, avgReturn: 0, bestTrade: 0, worstTrade: 0, sharpeRatio: 0,
+  };
   const isPositive = summary.totalPnl >= 0;
 
   return (
@@ -376,7 +391,10 @@ export default function TradingDashboard() {
 // OVERVIEW TAB
 // ═══════════════════════════════════════════════════════════════
 function OverviewTab({ data }: { data: TradingData }) {
-  const { summary } = data;
+  const summary = data.summary ?? {
+    totalPnl: 0, totalTrades: 0, winRate: 0, activeTrades: 0,
+    totalVolume: 0, avgReturn: 0, bestTrade: 0, worstTrade: 0, sharpeRatio: 0,
+  };
   const isPositive = summary.totalPnl >= 0;
 
   return (
