@@ -331,12 +331,12 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
   // ─── Wallet connect ───
   const handleConnect = () => {
     // Navigate to settings page for wallet connection
-    window.location.href = "/settings?tab=wallet";
+    window.location.href = "/trading/settings?tab=wallet";
   };
 
   const handleDisconnect = () => {
     // Navigate to settings to manage wallet
-    window.location.href = "/settings?tab=wallet";
+    window.location.href = "/trading/settings?tab=wallet";
   };
 
   // ─── Order submission ───
