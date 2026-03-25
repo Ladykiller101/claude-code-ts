@@ -9,10 +9,20 @@ export async function GET() {
     const jsonPath = join(process.cwd(), "data", "trading-data.json");
 
     if (!existsSync(jsonPath)) {
-      return NextResponse.json(
-        { error: "Trading data not found. Run: python scripts/export_trading_data.py" },
-        { status: 404 }
-      );
+      // Return empty trading data instead of 404 so the dashboard renders gracefully
+      return NextResponse.json({
+        summary: {
+          totalPnl: 0, totalTrades: 0, winRate: 0, openPositions: 0,
+          sharpeRatio: 0, maxDrawdown: 0, profitFactor: 0,
+          avgWin: 0, avgLoss: 0, totalFees: 0, currentEquity: 0,
+        },
+        equityCurve: [],
+        byAsset: [],
+        byStrategy: [],
+        byTier: [],
+        recentTrades: [],
+        openPositions: [],
+      });
     }
 
     const raw = readFileSync(jsonPath, "utf-8");

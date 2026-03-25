@@ -82,14 +82,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     }, 5000);
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchProfile(session.user).catch(console.error);
+    // Get initial user (validates with server, more secure than getSession)
+    supabase.auth.getUser().then(({ data: { user: initialUser } }) => {
+      if (initialUser) {
+        fetchProfile(initialUser).then(() => setIsLoading(false)).catch((err) => {
+          console.error("Profile fetch error:", err);
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }).catch((err) => {
-      console.error("Auth session error:", err);
+      console.error("Auth user error:", err);
       setIsLoading(false);
     });
 

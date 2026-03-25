@@ -16,10 +16,23 @@ export async function GET() {
     const jsonPath = join(process.cwd(), "data", "trading-data.json");
 
     if (!existsSync(jsonPath)) {
-      return NextResponse.json(
-        { error: "Trading data not found. Run: python scripts/export_trading_data.py" },
-        { status: 404 },
-      );
+      // Return empty performance data instead of 404
+      return NextResponse.json({
+        summary: {
+          totalPnl: 0, totalTrades: 0, winRate: 0, openPositions: 0,
+          sharpeRatio: 0, maxDrawdown: 0, profitFactor: 0,
+          avgWin: 0, avgLoss: 0, totalFees: 0, currentEquity: 0,
+        },
+        equityCurve: [],
+        byAsset: [],
+        byStrategy: [],
+        byTier: [],
+        recentTrades: [],
+        openPositions: [],
+        dailyReturns: [],
+        monthlyReturns: [],
+        riskMetrics: { var95: 0, cvar95: 0, calmarRatio: 0 },
+      });
     }
 
     const raw = readFileSync(jsonPath, "utf-8");
@@ -62,13 +75,13 @@ function generateDailyReturns(data: Record<string, unknown>): DailyReturn[] {
     | { date: string; value: number }[]
     | undefined;
 
-  if (equityCurve && equityCurve.length > 1) {
+  if (Array.isArray(equityCurve) && equityCurve.length > 1) {
     const returns: DailyReturn[] = [];
     for (let i = 1; i < equityCurve.length; i++) {
-      const prev = equityCurve[i - 1].value;
-      const curr = equityCurve[i].value;
+      const prev = Number(equityCurve[i - 1]?.value) || 0;
+      const curr = Number(equityCurve[i]?.value) || 0;
       returns.push({
-        date: equityCurve[i].date,
+        date: equityCurve[i]?.date || "",
         return: prev !== 0 ? (curr - prev) / prev : 0,
       });
     }
@@ -109,7 +122,7 @@ function aggregateMonthlyReturns(dailyReturns: DailyReturn[]): MonthlyReturn[] {
   const byMonth = new Map<string, number[]>();
 
   for (const dr of dailyReturns) {
-    const month = dr.date.slice(0, 7); // "YYYY-MM"
+    const month = (dr.date || "").slice(0, 7); // "YYYY-MM"
     if (!byMonth.has(month)) byMonth.set(month, []);
     byMonth.get(month)!.push(dr.return);
   }

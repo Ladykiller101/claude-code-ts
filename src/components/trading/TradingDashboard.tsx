@@ -79,6 +79,19 @@ interface TradingData {
 }
 
 // ─── Utility ─────────────────────────────────────────────────
+
+const EMPTY_SUMMARY = {
+  totalPnl: 0, totalTrades: 0, winRate: 0, openPositions: 0,
+  sharpeRatio: 0, maxDrawdown: 0, profitFactor: 0,
+  avgWin: 0, avgLoss: 0, totalFees: 0, currentEquity: 0,
+};
+
+/** Safely merge API summary with defaults so every field is guaranteed to be a number. */
+function safeSummary(raw: Partial<typeof EMPTY_SUMMARY> | null | undefined): typeof EMPTY_SUMMARY {
+  if (!raw) return { ...EMPTY_SUMMARY };
+  return { ...EMPTY_SUMMARY, ...raw };
+}
+
 function fmt(n: number, prefix = "$") {
   const abs = Math.abs(n);
   if (abs >= 1_000_000) return `${prefix}${(n / 1_000_000).toFixed(2)}M`;
@@ -180,12 +193,39 @@ export default function TradingDashboard() {
             openPositions: [],
           } as TradingData);
         } else {
-          setData(d);
+          // Ensure all expected fields exist with safe defaults
+          setData({
+            summary: {
+              totalPnl: 0, totalTrades: 0, winRate: 0, openPositions: 0,
+              sharpeRatio: 0, maxDrawdown: 0, profitFactor: 0,
+              avgWin: 0, avgLoss: 0, totalFees: 0, currentEquity: 0,
+              ...(d.summary ?? {}),
+            },
+            equityCurve: Array.isArray(d.equityCurve) ? d.equityCurve : [],
+            byAsset: Array.isArray(d.byAsset) ? d.byAsset : [],
+            byStrategy: Array.isArray(d.byStrategy) ? d.byStrategy : [],
+            byTier: Array.isArray(d.byTier) ? d.byTier : [],
+            recentTrades: Array.isArray(d.recentTrades) ? d.recentTrades : [],
+            openPositions: Array.isArray(d.openPositions) ? d.openPositions : [],
+          } as TradingData);
         }
         setLoading(false);
       })
-      .catch((e) => {
-        setError(e.message);
+      .catch(() => {
+        // Network error or parse failure — show empty dashboard instead of error screen
+        setData({
+          summary: {
+            totalPnl: 0, totalTrades: 0, winRate: 0, openPositions: 0,
+            sharpeRatio: 0, maxDrawdown: 0, profitFactor: 0,
+            avgWin: 0, avgLoss: 0, totalFees: 0, currentEquity: 0,
+          },
+          equityCurve: [],
+          byAsset: [],
+          byStrategy: [],
+          byTier: [],
+          recentTrades: [],
+          openPositions: [],
+        } as TradingData);
         setLoading(false);
       });
   }, []);
@@ -220,10 +260,7 @@ export default function TradingDashboard() {
     );
   }
 
-  const summary = data.summary ?? {
-    totalPnl: 0, totalTrades: 0, winRate: 0, activeTrades: 0,
-    totalVolume: 0, avgReturn: 0, bestTrade: 0, worstTrade: 0, sharpeRatio: 0,
-  };
+  const summary = safeSummary(data.summary);
   const isPositive = summary.totalPnl >= 0;
 
   return (
@@ -339,8 +376,8 @@ export default function TradingDashboard() {
           {activeTab === "trades" && (
             <TradesTab
               key="trades"
-              trades={data.recentTrades}
-              openPositions={data.openPositions}
+              trades={data.recentTrades ?? []}
+              openPositions={data.openPositions ?? []}
               expandedTrade={expandedTrade}
               setExpandedTrade={setExpandedTrade}
             />
@@ -372,19 +409,25 @@ export default function TradingDashboard() {
               fontFamily: "JetBrains Mono, monospace",
             }}
           >
-            {[...data.byAsset, ...data.byAsset].map((a, i) => (
+            {(data.byAsset?.length > 0
+              ? [...data.byAsset, ...data.byAsset]
+              : []
+            ).map((a, i) => (
               <span key={i} className="text-[11px] flex items-center gap-2">
                 <span className="text-zinc-400">{a.asset}</span>
                 <span
-                  className={a.pnl >= 0 ? "text-emerald-400" : "text-red-400"}
+                  className={(a.pnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}
                 >
-                  {a.pnl >= 0 ? "+" : ""}
-                  {fmt(a.pnl)}
+                  {(a.pnl ?? 0) >= 0 ? "+" : ""}
+                  {fmt(a.pnl ?? 0)}
                 </span>
                 <span className="text-zinc-600">|</span>
-                <span className="text-zinc-500">WR {pct(a.winRate)}</span>
+                <span className="text-zinc-500">WR {pct(a.winRate ?? 0)}</span>
               </span>
             ))}
+            {(!data.byAsset || data.byAsset.length === 0) && (
+              <span className="text-[11px] text-zinc-600">No trading data available</span>
+            )}
           </div>
         </div>
       </footer>
@@ -396,10 +439,11 @@ export default function TradingDashboard() {
 // OVERVIEW TAB
 // ═══════════════════════════════════════════════════════════════
 function OverviewTab({ data }: { data: TradingData }) {
-  const summary = data.summary ?? {
-    totalPnl: 0, totalTrades: 0, winRate: 0, activeTrades: 0,
-    totalVolume: 0, avgReturn: 0, bestTrade: 0, worstTrade: 0, sharpeRatio: 0,
-  };
+  const summary = safeSummary(data.summary);
+  const byAsset = Array.isArray(data.byAsset) ? data.byAsset : [];
+  const byStrategy = Array.isArray(data.byStrategy) ? data.byStrategy : [];
+  const byTier = Array.isArray(data.byTier) ? data.byTier : [];
+  const equityCurve = Array.isArray(data.equityCurve) ? data.equityCurve : [];
   const isPositive = summary.totalPnl >= 0;
 
   return (
@@ -481,7 +525,7 @@ function OverviewTab({ data }: { data: TradingData }) {
         </div>
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data.equityCurve}>
+            <AreaChart data={equityCurve}>
               <defs>
                 <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop
@@ -551,11 +595,13 @@ function OverviewTab({ data }: { data: TradingData }) {
             Performance by Asset
           </h3>
           <div className="space-y-3">
-            {data.byAsset
-              .sort((a, b) => b.pnl - a.pnl)
+            {byAsset.length > 0 ? byAsset
+              .sort((a, b) => (b.pnl ?? 0) - (a.pnl ?? 0))
               .map((a) => (
                 <AssetRow key={a.asset} {...a} />
-              ))}
+              )) : (
+              <p className="text-xs text-zinc-600 text-center py-4">No asset data</p>
+            )}
           </div>
         </motion.div>
 
@@ -571,11 +617,13 @@ function OverviewTab({ data }: { data: TradingData }) {
             Performance by Strategy
           </h3>
           <div className="space-y-3">
-            {data.byStrategy
-              .sort((a, b) => b.pnl - a.pnl)
+            {byStrategy.length > 0 ? byStrategy
+              .sort((a, b) => (b.pnl ?? 0) - (a.pnl ?? 0))
               .map((s) => (
                 <StrategyRow key={s.strategy} {...s} />
-              ))}
+              )) : (
+              <p className="text-xs text-zinc-600 text-center py-4">No strategy data</p>
+            )}
           </div>
         </motion.div>
 
@@ -594,9 +642,9 @@ function OverviewTab({ data }: { data: TradingData }) {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data.byTier.map((t) => ({
+                  data={byTier.map((t) => ({
                     name: t.tier,
-                    value: t.trades,
+                    value: t.trades ?? 0,
                   }))}
                   cx="50%"
                   cy="50%"
@@ -606,7 +654,7 @@ function OverviewTab({ data }: { data: TradingData }) {
                   dataKey="value"
                   stroke="none"
                 >
-                  {data.byTier.map((t, i) => (
+                  {byTier.map((t, i) => (
                     <Cell
                       key={i}
                       fill={TIER_COLORS[t.tier] || "#6366f1"}
@@ -626,7 +674,7 @@ function OverviewTab({ data }: { data: TradingData }) {
             </ResponsiveContainer>
           </div>
           <div className="space-y-2">
-            {data.byTier
+            {byTier
               .sort((a, b) => {
                 const order = ["A+", "A", "B", "C"];
                 return order.indexOf(a.tier) - order.indexOf(b.tier);
@@ -650,19 +698,19 @@ function OverviewTab({ data }: { data: TradingData }) {
                       className="text-zinc-500"
                       style={{ fontFamily: "JetBrains Mono, monospace" }}
                     >
-                      {t.trades} trades
+                      {t.trades ?? 0} trades
                     </span>
                     <span
                       className={`font-medium ${
-                        t.winRate >= 70
+                        (t.winRate ?? 0) >= 70
                           ? "text-emerald-400"
-                          : t.winRate >= 50
+                          : (t.winRate ?? 0) >= 50
                           ? "text-amber-400"
                           : "text-red-400"
                       }`}
                       style={{ fontFamily: "JetBrains Mono, monospace" }}
                     >
-                      {pct(t.winRate)}
+                      {pct(t.winRate ?? 0)}
                     </span>
                   </div>
                 </div>
@@ -738,17 +786,17 @@ function TradesTab({
       className="space-y-6 pb-12"
     >
       {/* Open Positions */}
-      {openPositions.length > 0 && (
+      {(openPositions ?? []).length > 0 && (
         <div className="card-glass rounded-2xl p-5">
           <h3 className="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
             <Radio className="w-4 h-4 text-emerald-400" />
             Open Positions
             <span className="ml-auto text-xs text-emerald-400/60 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-              {openPositions.length} active
+              {(openPositions ?? []).length} active
             </span>
           </h3>
           <div className="space-y-2">
-            {openPositions.map((t, i) => (
+            {(openPositions ?? []).map((t, i) => (
               <OpenPositionRow key={i} trade={t} />
             ))}
           </div>
@@ -761,7 +809,7 @@ function TradesTab({
           <Activity className="w-4 h-4 text-zinc-500" />
           Recent Trades
           <span className="ml-auto text-xs text-zinc-500">
-            Last {trades.filter((t) => t.pnl !== null).length} closed
+            Last {(trades ?? []).filter((t) => t.pnl != null).length} closed
           </span>
         </h3>
 
@@ -780,8 +828,8 @@ function TradesTab({
         </div>
 
         <div className="space-y-0.5 mt-1">
-          {trades
-            .filter((t) => t.pnl !== null)
+          {(trades ?? [])
+            .filter((t) => t.pnl != null)
             .map((t, i) => (
               <TradeRow
                 key={i}
@@ -1184,7 +1232,7 @@ function TradeRow({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const pnl = trade.pnl as number;
+  const pnl = (trade.pnl as number) ?? 0;
   const isWin = pnl > 0;
 
   return (
@@ -1194,7 +1242,7 @@ function TradeRow({
         className="w-full grid grid-cols-[1fr_80px_80px_100px_80px_80px_60px] gap-2 px-3 py-2.5 rounded-lg hover:bg-white/[0.02] transition-colors items-center text-left"
       >
         <span className="text-xs font-medium text-zinc-200">
-          {trade.asset as string}
+          {(trade.asset as string) ?? "—"}
         </span>
         <span
           className={`text-[11px] font-medium ${
@@ -1202,7 +1250,7 @@ function TradeRow({
           }`}
           style={{ fontFamily: "JetBrains Mono, monospace" }}
         >
-          {trade.side as string}
+          {(trade.side as string) ?? "—"}
         </span>
         <span
           className="text-[10px] text-zinc-500 truncate"
@@ -1214,7 +1262,7 @@ function TradeRow({
           className="text-[11px] text-zinc-400 text-right"
           style={{ fontFamily: "JetBrains Mono, monospace" }}
         >
-          {Number(trade.entry_price).toLocaleString(undefined, {
+          {(Number(trade.entry_price) || 0).toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}
@@ -1232,7 +1280,7 @@ function TradeRow({
           className="text-[11px] text-zinc-500 text-right"
           style={{ fontFamily: "JetBrains Mono, monospace" }}
         >
-          {Number(trade.confidence).toFixed(0)}%
+          {(Number(trade.confidence) || 0).toFixed(0)}%
         </span>
         <span className="text-zinc-600 flex justify-end">
           {expanded ? (
@@ -1287,16 +1335,16 @@ function TradeRow({
                   TIER: {(trade.tier as string) || "—"}
                 </span>
                 <span>
-                  STOP: {Number(trade.stop_loss).toFixed(2)}
+                  STOP: {(Number(trade.stop_loss) || 0).toFixed(2)}
                 </span>
                 <span>
-                  TP: {Number(trade.take_profit).toFixed(2)}
+                  TP: {(Number(trade.take_profit) || 0).toFixed(2)}
                 </span>
                 <span>
-                  FEES: ${Number(trade.fees || 0).toFixed(2)}
+                  FEES: ${(Number(trade.fees) || 0).toFixed(2)}
                 </span>
                 <span>
-                  EXIT: {Number(trade.exit_price || 0).toFixed(2)}
+                  EXIT: {(Number(trade.exit_price) || 0).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -1316,7 +1364,7 @@ function OpenPositionRow({ trade }: { trade: Record<string, unknown> }) {
           style={{ animation: "pulse-glow 2s ease-in-out infinite" }}
         />
         <span className="text-xs font-medium text-zinc-200">
-          {trade.asset as string}
+          {(trade.asset as string) ?? "—"}
         </span>
         <span
           className={`text-[10px] font-medium ${
@@ -1324,7 +1372,7 @@ function OpenPositionRow({ trade }: { trade: Record<string, unknown> }) {
           }`}
           style={{ fontFamily: "JetBrains Mono, monospace" }}
         >
-          {trade.side as string}
+          {(trade.side as string) ?? "—"}
         </span>
       </div>
       <div
@@ -1332,13 +1380,13 @@ function OpenPositionRow({ trade }: { trade: Record<string, unknown> }) {
         style={{ fontFamily: "JetBrains Mono, monospace" }}
       >
         <span className="text-zinc-500">
-          Entry: {Number(trade.entry_price).toFixed(2)}
+          Entry: {(Number(trade.entry_price) || 0).toFixed(2)}
         </span>
         <span className="text-zinc-500">
-          Conf: {Number(trade.confidence).toFixed(0)}%
+          Conf: {(Number(trade.confidence) || 0).toFixed(0)}%
         </span>
         <span className="text-zinc-500">
-          SL: {Number(trade.stop_loss).toFixed(2)}
+          SL: {(Number(trade.stop_loss) || 0).toFixed(2)}
         </span>
       </div>
     </div>

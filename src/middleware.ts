@@ -27,13 +27,12 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Public routes — skip auth check entirely for speed
+  // Fully public routes — never require auth check
   if (
     pathname === "/" ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/auth/callback") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/dashboard") ||
@@ -45,18 +44,31 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Auth-gated routes and login/signup pages both need user check
+  const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/signup");
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Unauthenticated handling
   if (!user) {
+    // Not logged in — allow login/signup pages
+    if (isAuthPage) {
+      return supabaseResponse;
+    }
     // API routes get 401 JSON instead of redirect
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Non autorise" }, { status: 401 });
     }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  // Logged in — redirect away from login/signup to trading
+  if (isAuthPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/trading";
     return NextResponse.redirect(url);
   }
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/api-auth";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { placeOrder, getMarketData } from "@/lib/hyperliquid";
 import { decrypt } from "@/lib/encryption";
@@ -75,10 +74,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const admin = createAdminClient();
 
     // Get user's active wallet with encrypted agent key
-    const { data: wallet, error: walletError } = await supabase
+    // Use admin client to bypass RLS — we already verified the user via getAuthUser()
+    const { data: wallet, error: walletError } = await admin
       .from("user_wallets")
       .select("wallet_address, agent_wallet_encrypted")
       .eq("user_id", user.id)
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user trading config for risk limits
-    const { data: config } = await supabase
+    const { data: config } = await admin
       .from("user_trading_config")
       .select("*")
       .eq("user_id", user.id)
@@ -141,7 +141,6 @@ export async function POST(request: NextRequest) {
 
     // Enforce daily risk limit
     const riskLimitDailyUsd = config?.risk_limit_daily_usd ?? 1000;
-    const admin = createAdminClient();
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     const { data: todayTrades, error: todayTradesError } = await admin

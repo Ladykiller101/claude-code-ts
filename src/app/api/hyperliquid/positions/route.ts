@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/api-auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getUserPositions, getUserBalance } from "@/lib/hyperliquid";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +18,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabase = await createClient();
+    const admin = createAdminClient();
 
-    // Get user's active wallet
-    const { data: wallet, error: walletError } = await supabase
+    // Get user's active wallet — use admin client to bypass RLS
+    const { data: wallet, error: walletError } = await admin
       .from("user_wallets")
       .select("wallet_address")
       .eq("user_id", user.id)

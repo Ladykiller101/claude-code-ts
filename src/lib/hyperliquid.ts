@@ -154,7 +154,8 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
   );
   if (assetIdx === -1) throw new Error(`Unknown symbol: ${symbol}`);
 
-  const ctx = fundingData[1][assetIdx];
+  const ctx = fundingData[1]?.[assetIdx];
+  if (!ctx) throw new Error(`No market context found for ${symbol} (index ${assetIdx})`);
   const midPrice = parseFloat(allMids[coin] || "0");
   const markPrice = parseFloat(ctx.markPx || "0");
   const prevDayPx = parseFloat(ctx.prevDayPx || "0");
@@ -184,13 +185,14 @@ export async function getOrderbook(symbol: string): Promise<Orderbook> {
     levels: [{ px: string; sz: string; n: number }[], { px: string; sz: string; n: number }[]];
   };
 
+  const levels = data.levels || [[], []];
   return {
     symbol,
-    bids: data.levels[0].map((l) => ({
+    bids: (levels[0] || []).map((l) => ({
       price: parseFloat(l.px),
       size: parseFloat(l.sz),
     })),
-    asks: data.levels[1].map((l) => ({
+    asks: (levels[1] || []).map((l) => ({
       price: parseFloat(l.px),
       size: parseFloat(l.sz),
     })),
@@ -236,6 +238,7 @@ export async function getCandles(
     v: string;
   }[];
 
+  if (!Array.isArray(data)) return [];
   return data.slice(-limit).map((c) => ({
     time: c.t,
     open: parseFloat(c.o),
@@ -274,7 +277,7 @@ export async function getUserPositions(
     }[];
   };
 
-  return data.assetPositions
+  return (data.assetPositions || [])
     .filter((ap) => parseFloat(ap.position.szi) !== 0)
     .map((ap) => {
       const p = ap.position;
@@ -319,7 +322,12 @@ export async function getUserBalance(
     };
   };
 
-  const margin = data.marginSummary || data.crossMarginSummary;
+  const margin = data.marginSummary || data.crossMarginSummary || {
+    accountValue: "0",
+    totalNtlPos: "0",
+    totalRawUsd: "0",
+    totalMarginUsed: "0",
+  };
   const accountValue = parseFloat(margin.accountValue || "0");
   const marginUsed = parseFloat(margin.totalMarginUsed || "0");
 
