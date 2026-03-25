@@ -168,11 +168,16 @@ export default function TradingDashboard() {
           // API returned an error — use empty trading data
           setData({
             summary: {
-              totalPnl: 0, totalTrades: 0, winRate: 0, activeTrades: 0,
-              totalVolume: 0, avgReturn: 0, bestTrade: 0, worstTrade: 0, sharpeRatio: 0,
+              totalPnl: 0, totalTrades: 0, winRate: 0, openPositions: 0,
+              sharpeRatio: 0, maxDrawdown: 0, profitFactor: 0,
+              avgWin: 0, avgLoss: 0, totalFees: 0, currentEquity: 0,
             },
-            trades: [],
-            agents: [],
+            equityCurve: [],
+            byAsset: [],
+            byStrategy: [],
+            byTier: [],
+            recentTrades: [],
+            openPositions: [],
           } as TradingData);
         } else {
           setData(d);
