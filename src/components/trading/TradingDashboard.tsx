@@ -163,15 +163,10 @@ export default function TradingDashboard() {
   const [showExecuteModal, setShowExecuteModal] = useState(false);
   const [hlSymbol, setHlSymbol] = useState("BTC-PERP");
 
-  useEffect(() => {
-    // Inject custom styles
-    const style = document.createElement("style");
-    style.textContent = INJECTED_STYLES;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+  // Styles injected via React (avoids DOM insertBefore errors from browser extensions)
+  const injectedStyles = (
+    <style dangerouslySetInnerHTML={{ __html: INJECTED_STYLES }} />
+  );
 
   useEffect(() => {
     fetch("/api/trading")
@@ -268,6 +263,7 @@ export default function TradingDashboard() {
       className="min-h-screen bg-[#06060a] text-white noise-bg relative overflow-hidden"
       style={{ fontFamily: "Outfit, sans-serif" }}
     >
+      {injectedStyles}
       {/* Ambient glow effects */}
       <div className="fixed inset-0 pointer-events-none">
         <div

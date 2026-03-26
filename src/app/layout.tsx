@@ -27,6 +27,29 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      <head>
+        {/* Suppress browser extension DOM errors that crash React hydration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined') {
+                const origError = window.onerror;
+                window.onerror = function(msg) {
+                  if (typeof msg === 'string' && (
+                    msg.includes('insertBefore') ||
+                    msg.includes('removeChild') ||
+                    msg.includes('appendChild') ||
+                    msg.includes('not a child of this node')
+                  )) {
+                    return true; // suppress the error
+                  }
+                  return origError ? origError.apply(this, arguments) : false;
+                };
+              }
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
