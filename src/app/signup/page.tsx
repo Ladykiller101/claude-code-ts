@@ -111,9 +111,8 @@ export default function SignupPage() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 1, y: 0 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
         className="relative z-10 w-full max-w-md px-6"
       >
         {/* Logo */}
