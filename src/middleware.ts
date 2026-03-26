@@ -39,7 +39,11 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/google/drive/sync") ||
     pathname.startsWith("/api/hyperliquid/market") ||
     pathname.startsWith("/api/hyperliquid/orderbook") ||
-    pathname.startsWith("/api/hyperliquid/candles")
+    pathname.startsWith("/api/hyperliquid/candles") ||
+    pathname.startsWith("/api/trading/performance") ||
+    pathname.startsWith("/api/trading/brokers") ||
+    pathname.startsWith("/api/trading/controls") ||
+    pathname === "/api/trading"
   ) {
     return supabaseResponse;
   }

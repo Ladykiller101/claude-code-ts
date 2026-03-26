@@ -120,6 +120,18 @@ const DEFAULT_BROKERS: Broker[] = [
     requiredCredentials: [],
   },
   {
+    id: "hyperliquid",
+    name: "Hyperliquid",
+    category: "crypto",
+    description: "On-chain perpetual futures DEX with deep liquidity",
+    icon: "coins",
+    status: "disconnected",
+    requiredCredentials: [
+      { key: "wallet_address", label: "Wallet Address", type: "text" },
+      { key: "agent_private_key", label: "Agent Private Key", type: "password" },
+    ],
+  },
+  {
     id: "bloomberg",
     name: "Bloomberg Terminal",
     category: "stocks",
@@ -239,26 +251,30 @@ export default function TradingSettings() {
     };
   }, []);
 
-  // Load brokers from API + check Hyperliquid wallet status from Supabase
+  // Load brokers from API, then check Hyperliquid wallet status from Supabase.
+  // These must run sequentially: wallet status update must happen AFTER brokers
+  // are loaded, otherwise the "hyperliquid" broker entry may not exist yet.
   useEffect(() => {
-    // Load broker file data
-    fetch("/api/trading/brokers")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data && Array.isArray(data.brokers)) {
-          setBrokers(data.brokers);
+    async function loadBrokersAndWallet() {
+      // Step 1: Load broker definitions
+      try {
+        const brokersRes = await fetch("/api/trading/brokers");
+        const brokersData = await brokersRes.json();
+        if (brokersData && Array.isArray(brokersData.brokers)) {
+          setBrokers(brokersData.brokers);
         }
-      })
-      .catch(() => {
+      } catch {
         // Use defaults on error
-      });
+      }
 
-    // Check if Hyperliquid wallet is connected (from Supabase)
-    fetch("/api/hyperliquid/wallet")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success && data.data?.wallets?.length > 0) {
-          const activeWallet = data.data.wallets.find((w: { is_active: boolean }) => w.is_active);
+      // Step 2: Check Hyperliquid wallet status (runs after brokers are set)
+      try {
+        const walletRes = await fetch("/api/hyperliquid/wallet");
+        const walletData = await walletRes.json();
+        if (walletData.success && walletData.data?.wallets?.length > 0) {
+          const activeWallet = walletData.data.wallets.find(
+            (w: { is_active: boolean }) => w.is_active
+          );
           if (activeWallet) {
             setBrokers((prev) =>
               prev.map((b) =>
@@ -276,10 +292,12 @@ export default function TradingSettings() {
             );
           }
         }
-      })
-      .catch(() => {
+      } catch {
         // Ignore — user may not be authenticated
-      });
+      }
+    }
+
+    loadBrokersAndWallet();
   }, []);
 
   // Auto-open Hyperliquid connection form when ?tab=wallet is in URL

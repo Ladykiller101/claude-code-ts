@@ -142,7 +142,7 @@ interface HyperliquidPanelProps {
 }
 
 export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // UI state
   const [symbol, setSymbol] = useState("BTC-PERP");
@@ -156,7 +156,7 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
 
   // Data state
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
-  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(true);
   const [market, setMarket] = useState<MarketInfo | null>(null);
   const [marketLoading, setMarketLoading] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -203,11 +203,16 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
 
   // ─── Fetch wallet info ───
   const fetchWallet = useCallback(async () => {
+    if (!isAuthenticated) {
+      // Auth not ready yet — don't fetch and don't clear existing wallet info
+      setWalletLoading(false);
+      return;
+    }
     setWalletLoading(true);
     try {
       const res = await fetch("/api/hyperliquid/wallet");
       if (res.status === 401) {
-        // Not authenticated — don't clear wallet, auth may still be loading
+        // Token may have expired — don't clear wallet info
         setWalletLoading(false);
         return;
       }
@@ -232,7 +237,7 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
     } finally {
       setWalletLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   // ─── Fetch positions ───
   const fetchPositions = useCallback(async () => {
@@ -308,17 +313,11 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
     return () => clearInterval(interval);
   }, [fetchMarketData]);
 
-  // Wallet: fetch on mount and re-fetch when auth becomes available
+  // Wallet: fetch when auth state changes (fetchWallet depends on isAuthenticated,
+  // so when auth loads, this effect automatically re-runs with the new callback)
   useEffect(() => {
     fetchWallet();
   }, [fetchWallet]);
-
-  // Re-fetch wallet when user authenticates (auth context loads async)
-  useEffect(() => {
-    if (isAuthenticated && !walletInfo) {
-      fetchWallet();
-    }
-  }, [isAuthenticated, walletInfo, fetchWallet]);
 
   // Positions: fetch on mount and when auth changes
   useEffect(() => {
@@ -478,7 +477,7 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
         </div>
 
         {/* Wallet button */}
-        {walletLoading ? (
+        {(walletLoading || authLoading) ? (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06]">
             <Loader2 className="w-3.5 h-3.5 text-zinc-500 animate-spin" />
             <span className="text-xs text-zinc-500" style={{ fontFamily: "JetBrains Mono, monospace" }}>
@@ -709,13 +708,13 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
           )}
         </button>
 
-        {!isAuthenticated && (
+        {!isAuthenticated && !authLoading && (
           <p className="text-[10px] text-zinc-600 text-center flex items-center justify-center gap-1">
             <AlertTriangle className="w-3 h-3" />
             Log in to place orders
           </p>
         )}
-        {isAuthenticated && !walletInfo && !walletLoading && (
+        {isAuthenticated && !walletInfo && !walletLoading && !authLoading && (
           <p className="text-[10px] text-zinc-600 text-center flex items-center justify-center gap-1">
             <AlertTriangle className="w-3 h-3" />
             Connect wallet to place orders
@@ -757,11 +756,11 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
                   <Loader2 className="w-5 h-5 text-zinc-500 animate-spin mx-auto mb-2" />
                   <span className="text-zinc-600 text-xs">Loading positions...</span>
                 </div>
-              ) : !isAuthenticated ? (
+              ) : !isAuthenticated && !authLoading ? (
                 <div className="px-4 py-8 text-center text-zinc-600 text-xs">
                   Log in to view positions
                 </div>
-              ) : !walletInfo && !walletLoading ? (
+              ) : !walletInfo && !walletLoading && !authLoading ? (
                 <div className="px-4 py-8 text-center text-zinc-600 text-xs">
                   Connect wallet to view positions
                 </div>
