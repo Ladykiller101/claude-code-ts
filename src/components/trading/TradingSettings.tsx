@@ -241,15 +241,10 @@ export default function TradingSettings() {
     newsApiKey: "",
   });
 
-  // Inject styles
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = SETTINGS_STYLES;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+  // Inject styles using React-safe dangerouslySetInnerHTML (avoids DOM insertBefore errors)
+  const stylesElement = (
+    <style dangerouslySetInnerHTML={{ __html: SETTINGS_STYLES }} />
+  );
 
   // Load brokers from API, then check Hyperliquid wallet status from Supabase.
   // These must run sequentially: wallet status update must happen AFTER brokers
@@ -444,6 +439,7 @@ export default function TradingSettings() {
       className="min-h-screen bg-[#06060a] text-white noise-bg relative overflow-hidden"
       style={{ fontFamily: "Outfit, sans-serif" }}
     >
+      {stylesElement}
       {/* Ambient glow */}
       <div className="fixed inset-0 pointer-events-none">
         <div
