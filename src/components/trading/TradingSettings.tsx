@@ -25,7 +25,7 @@ import {
   Send,
   Brain,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────
 interface Broker {
@@ -208,6 +208,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 // ═══════════════════════════════════════════════════════════════
 export default function TradingSettings() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [brokers, setBrokers] = useState<Broker[]>(DEFAULT_BROKERS);
   const [controls, setControls] = useState<TradingControls>(DEFAULT_CONTROLS);
   const [selectedBroker, setSelectedBroker] = useState<Broker | null>(null);
@@ -238,8 +239,9 @@ export default function TradingSettings() {
     };
   }, []);
 
-  // Load brokers from API
+  // Load brokers from API + check Hyperliquid wallet status from Supabase
   useEffect(() => {
+    // Load broker file data
     fetch("/api/trading/brokers")
       .then((r) => r.json())
       .then((data) => {
@@ -250,7 +252,46 @@ export default function TradingSettings() {
       .catch(() => {
         // Use defaults on error
       });
+
+    // Check if Hyperliquid wallet is connected (from Supabase)
+    fetch("/api/hyperliquid/wallet")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.data?.wallets?.length > 0) {
+          const activeWallet = data.data.wallets.find((w: { is_active: boolean }) => w.is_active);
+          if (activeWallet) {
+            setBrokers((prev) =>
+              prev.map((b) =>
+                b.id === "hyperliquid"
+                  ? {
+                      ...b,
+                      status: "connected" as const,
+                      accountInfo: [
+                        { label: "Wallet", value: activeWallet.wallet_address },
+                        { label: "Label", value: activeWallet.label || "Default" },
+                      ],
+                    }
+                  : b
+              )
+            );
+          }
+        }
+      })
+      .catch(() => {
+        // Ignore — user may not be authenticated
+      });
   }, []);
+
+  // Auto-open Hyperliquid connection form when ?tab=wallet is in URL
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "wallet") {
+      const hl = brokers.find((b) => b.id === "hyperliquid");
+      if (hl && !selectedBroker) {
+        setSelectedBroker(hl);
+      }
+    }
+  }, [searchParams, brokers, selectedBroker]);
 
   // Load controls from API
   useEffect(() => {

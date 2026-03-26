@@ -203,15 +203,12 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
 
   // ─── Fetch wallet info ───
   const fetchWallet = useCallback(async () => {
-    if (!isAuthenticated) {
-      setWalletInfo(null);
-      return;
-    }
     setWalletLoading(true);
     try {
       const res = await fetch("/api/hyperliquid/wallet");
       if (res.status === 401) {
-        setWalletInfo(null);
+        // Not authenticated — don't clear wallet, auth may still be loading
+        setWalletLoading(false);
         return;
       }
       if (!res.ok) throw new Error(`Wallet API ${res.status}`);
@@ -231,11 +228,11 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
       }
     } catch (err) {
       console.warn("Failed to fetch wallet info:", err);
-      setWalletInfo(null);
+      // Don't clear walletInfo on network errors
     } finally {
       setWalletLoading(false);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   // ─── Fetch positions ───
   const fetchPositions = useCallback(async () => {
@@ -311,10 +308,17 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
     return () => clearInterval(interval);
   }, [fetchMarketData]);
 
-  // Wallet: fetch on mount and when auth changes
+  // Wallet: fetch on mount and re-fetch when auth becomes available
   useEffect(() => {
     fetchWallet();
   }, [fetchWallet]);
+
+  // Re-fetch wallet when user authenticates (auth context loads async)
+  useEffect(() => {
+    if (isAuthenticated && !walletInfo) {
+      fetchWallet();
+    }
+  }, [isAuthenticated, walletInfo, fetchWallet]);
 
   // Positions: fetch on mount and when auth changes
   useEffect(() => {
