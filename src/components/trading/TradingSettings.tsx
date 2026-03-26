@@ -128,7 +128,7 @@ const DEFAULT_BROKERS: Broker[] = [
     status: "disconnected",
     requiredCredentials: [
       { key: "wallet_address", label: "Wallet Address", type: "text" },
-      { key: "agent_private_key", label: "Agent Private Key", type: "password" },
+      { key: "agent_private_key", label: "Agent Private Key", type: "text" },
     ],
   },
   {
@@ -1105,7 +1105,11 @@ function ConnectionModal({
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         transition={{ duration: 0.2 }}
         onClick={(e) => e.stopPropagation()}
-        className="card-glass rounded-2xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
+        className="rounded-2xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
+        style={{
+          background: "linear-gradient(135deg, rgba(20,20,30,0.98) 0%, rgba(15,15,22,0.98) 100%)",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
@@ -1152,9 +1156,10 @@ function ConnectionModal({
                     [field.key]: e.target.value,
                   })
                 }
-                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-zinc-200 outline-none focus:border-emerald-500/30 transition-colors placeholder:text-zinc-700"
-                style={{ fontFamily: "JetBrains Mono, monospace" }}
+                className="w-full bg-[#0a0a12] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-200 outline-none focus:border-emerald-500/30 transition-colors placeholder:text-zinc-600 relative z-10"
+                style={{ fontFamily: "JetBrains Mono, monospace", WebkitAppearance: "none" }}
                 placeholder={`Enter ${field.label.toLowerCase()}`}
+                autoComplete="off"
               />
             </div>
           ))}
