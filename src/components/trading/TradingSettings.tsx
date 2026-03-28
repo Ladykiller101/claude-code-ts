@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+// framer-motion removed — was causing insertBefore DOM crashes with browser extensions
 import {
   ArrowLeft,
   Coins,
@@ -507,13 +507,8 @@ export default function TradingSettings() {
           subtitle="MANAGE EXCHANGE & BROKER INTEGRATIONS"
           delay={0}
         />
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-        >
-          {brokers.map((broker, i) => (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {brokers.map((broker) => (
             <BrokerCard
               key={broker.id}
               broker={broker}
@@ -522,10 +517,10 @@ export default function TradingSettings() {
                 setCredentials({});
                 setTestResult(null);
               }}
-              delay={i * 0.04}
+              delay={0}
             />
           ))}
-        </motion.div>
+        </div>
 
         {/* Section B: Trading Controls */}
         <SectionHeader
@@ -534,12 +529,7 @@ export default function TradingSettings() {
           subtitle="MODE, SCAN INTERVAL & ASSET SELECTION"
           delay={0.2}
         />
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="grid lg:grid-cols-2 gap-4"
-        >
+        <div className="grid lg:grid-cols-2 gap-4">
           {/* Mode & Interval */}
           <div className="card-glass rounded-2xl p-6 space-y-6">
             {/* Mode Toggle */}
@@ -575,15 +565,13 @@ export default function TradingSettings() {
                 </button>
               </div>
               {controls.mode === "live" && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
+                <div
                   className="mt-2 flex items-center gap-2 text-[11px] text-amber-400"
                   style={{ fontFamily: "JetBrains Mono, monospace" }}
                 >
                   <AlertTriangle className="w-3 h-3" />
                   <span>REAL MONEY MODE ACTIVE</span>
-                </motion.div>
+                </div>
               )}
             </div>
 
@@ -726,7 +714,7 @@ export default function TradingSettings() {
               ))}
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Section C: Risk Parameters */}
         <SectionHeader
@@ -735,12 +723,7 @@ export default function TradingSettings() {
           subtitle="CURRENT RISK MANAGEMENT CONFIGURATION"
           delay={0.35}
         />
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="card-glass rounded-2xl p-6"
-        >
+        <div className="card-glass rounded-2xl p-6">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {RISK_PARAMS.map((param) => {
               const Icon = param.icon;
@@ -766,7 +749,7 @@ export default function TradingSettings() {
               );
             })}
           </div>
-        </motion.div>
+        </div>
 
         {/* Section D: API & Notifications */}
         <SectionHeader
@@ -775,10 +758,7 @@ export default function TradingSettings() {
           subtitle="EXTERNAL SERVICE INTEGRATIONS"
           delay={0.45}
         />
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+        <div
           className="grid lg:grid-cols-2 gap-4"
         >
           {/* Telegram */}
@@ -836,91 +816,85 @@ export default function TradingSettings() {
               type="password"
             />
           </div>
-        </motion.div>
+        </div>
       </main>
 
       {/* ─── Connection Modal ───────────────────────────────── */}
-      <AnimatePresence>
-        {selectedBroker && (
-          <ConnectionModal
-            broker={selectedBroker}
-            credentials={credentials}
-            setCredentials={setCredentials}
-            testing={testing}
-            testResult={testResult}
-            saving={saving}
-            onTest={handleTestConnection}
-            onSave={handleSaveConnection}
-            onClose={() => {
-              setSelectedBroker(null);
-              setCredentials({});
-              setTestResult(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {selectedBroker && (
+        <ConnectionModal
+          broker={selectedBroker}
+          credentials={credentials}
+          setCredentials={setCredentials}
+          testing={testing}
+          testResult={testResult}
+          saving={saving}
+          onTest={handleTestConnection}
+          onSave={handleSaveConnection}
+          onClose={() => {
+            setSelectedBroker(null);
+            setCredentials({});
+            setTestResult(null);
+          }}
+        />
+      )}
 
       {/* ─── Live Mode Warning Modal ────────────────────────── */}
-      <AnimatePresence>
-        {showLiveWarning && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowLiveWarning(false)}
+      {showLiveWarning && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowLiveWarning(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-2xl p-6 w-full max-w-md mx-4"
+            style={{
+              background: "#111118",
+              border: "1px solid rgba(239,68,68,0.2)",
+            }}
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="card-glass rounded-2xl p-6 w-full max-w-md mx-4 border-red-500/20"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-red-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-zinc-200">
-                    Switch to Live Trading?
-                  </h3>
-                  <p
-                    className="text-[11px] text-zinc-500"
-                    style={{ fontFamily: "JetBrains Mono, monospace" }}
-                  >
-                    THIS ACTION USES REAL FUNDS
-                  </p>
-                </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
               </div>
-              <p className="text-xs text-zinc-400 leading-relaxed mb-6">
-                You are about to switch to live trading mode. All trades will be
-                executed with real money on connected brokers. Ensure your risk
-                parameters are properly configured before proceeding.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowLiveWarning(false)}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-medium text-zinc-400 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] transition-colors"
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-200">
+                  Switch to Live Trading?
+                </h3>
+                <p
+                  className="text-[11px] text-zinc-500"
                   style={{ fontFamily: "JetBrains Mono, monospace" }}
                 >
-                  CANCEL
-                </button>
-                <button
-                  onClick={() => {
-                    updateControls({ mode: "live" });
-                    setShowLiveWarning(false);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-medium text-red-400 bg-red-500/20 border border-red-500/30 hover:bg-red-500/30 transition-colors"
-                  style={{ fontFamily: "JetBrains Mono, monospace" }}
-                >
-                  CONFIRM LIVE MODE
-                </button>
+                  THIS ACTION USES REAL FUNDS
+                </p>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-6">
+              You are about to switch to live trading mode. All trades will be
+              executed with real money on connected brokers. Ensure your risk
+              parameters are properly configured before proceeding.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLiveWarning(false)}
+                className="flex-1 py-2.5 rounded-xl text-xs font-medium text-zinc-400 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] transition-colors"
+                style={{ fontFamily: "JetBrains Mono, monospace" }}
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={() => {
+                  updateControls({ mode: "live" });
+                  setShowLiveWarning(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl text-xs font-medium text-red-400 bg-red-500/20 border border-red-500/30 hover:bg-red-500/30 transition-colors"
+                style={{ fontFamily: "JetBrains Mono, monospace" }}
+              >
+                CONFIRM LIVE MODE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -941,12 +915,7 @@ function SectionHeader({
   delay: number;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="flex items-center gap-3 pt-2"
-    >
+    <div className="flex items-center gap-3 pt-2">
       <span className="text-zinc-500">{icon}</span>
       <div>
         <h2 className="text-sm font-semibold text-zinc-300">{title}</h2>
@@ -957,7 +926,7 @@ function SectionHeader({
           {subtitle}
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -985,12 +954,7 @@ function BrokerCard({
       : "Disconnected";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="card-glass rounded-2xl p-5 group relative"
-    >
+    <div className="card-glass rounded-2xl p-5 group relative">
       {broker.comingSoon && (
         <div className="absolute top-3 right-3">
           <span
@@ -1061,7 +1025,7 @@ function BrokerCard({
           </button>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -1162,72 +1126,65 @@ function ConnectionModal({
         </div>
 
         {/* Test Result */}
-        <AnimatePresence>
-          {testResult && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-4"
+        {testResult && (
+          <div className="mb-4">
+            <div
+              className={`rounded-xl p-4 border ${
+                testResult.success
+                  ? "bg-emerald-500/[0.06] border-emerald-500/20"
+                  : "bg-red-500/[0.06] border-red-500/20"
+              }`}
             >
-              <div
-                className={`rounded-xl p-4 border ${
-                  testResult.success
-                    ? "bg-emerald-500/[0.06] border-emerald-500/20"
-                    : "bg-red-500/[0.06] border-red-500/20"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  {testResult.success ? (
-                    <Check className="w-4 h-4 text-emerald-400" />
-                  ) : (
-                    <X className="w-4 h-4 text-red-400" />
-                  )}
-                  <span
-                    className={`text-xs font-medium ${
-                      testResult.success ? "text-emerald-400" : "text-red-400"
-                    }`}
-                    style={{ fontFamily: "JetBrains Mono, monospace" }}
-                  >
-                    {testResult.success
-                      ? "CONNECTION SUCCESSFUL"
-                      : "CONNECTION FAILED"}
-                  </span>
-                </div>
-                {testResult.latency && (
-                  <p
-                    className="text-[11px] text-zinc-500"
-                    style={{ fontFamily: "JetBrains Mono, monospace" }}
-                  >
-                    Latency: {testResult.latency}ms
-                  </p>
+              <div className="flex items-center gap-2 mb-2">
+                {testResult.success ? (
+                  <Check className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <X className="w-4 h-4 text-red-400" />
                 )}
-                {testResult.accountInfo && (
-                  <div className="mt-2 space-y-1">
-                    {testResult.accountInfo.map((info) => (
-                      <div
-                        key={info.label}
-                        className="flex justify-between text-[11px]"
-                        style={{ fontFamily: "JetBrains Mono, monospace" }}
-                      >
-                        <span className="text-zinc-500">{info.label}</span>
-                        <span className="text-zinc-300">{info.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {testResult.error && (
-                  <p
-                    className="text-[11px] text-red-400/80 mt-1"
-                    style={{ fontFamily: "JetBrains Mono, monospace" }}
-                  >
-                    {testResult.error}
-                  </p>
-                )}
+                <span
+                  className={`text-xs font-medium ${
+                    testResult.success ? "text-emerald-400" : "text-red-400"
+                  }`}
+                  style={{ fontFamily: "JetBrains Mono, monospace" }}
+                >
+                  {testResult.success
+                    ? "CONNECTION SUCCESSFUL"
+                    : "CONNECTION FAILED"}
+                </span>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {testResult.latency && (
+                <p
+                  className="text-[11px] text-zinc-500"
+                  style={{ fontFamily: "JetBrains Mono, monospace" }}
+                >
+                  Latency: {testResult.latency}ms
+                </p>
+              )}
+              {testResult.accountInfo && (
+                <div className="mt-2 space-y-1">
+                  {testResult.accountInfo.map((info) => (
+                    <div
+                      key={info.label}
+                      className="flex justify-between text-[11px]"
+                      style={{ fontFamily: "JetBrains Mono, monospace" }}
+                    >
+                      <span className="text-zinc-500">{info.label}</span>
+                      <span className="text-zinc-300">{info.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {testResult.error && (
+                <p
+                  className="text-[11px] text-red-400/80 mt-1"
+                  style={{ fontFamily: "JetBrains Mono, monospace" }}
+                >
+                  {testResult.error}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3">

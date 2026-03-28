@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 export default function TradingError({
   error,
   reset,
@@ -7,6 +9,22 @@ export default function TradingError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const retried = useRef(false);
+
+  // Auto-retry once for DOM manipulation errors caused by browser extensions
+  useEffect(() => {
+    const isDomError =
+      error.message?.includes("insertBefore") ||
+      error.message?.includes("removeChild") ||
+      error.message?.includes("appendChild") ||
+      error.message?.includes("not a child of this node");
+
+    if (isDomError && !retried.current) {
+      retried.current = true;
+      reset();
+    }
+  }, [error, reset]);
+
   return (
     <div
       className="min-h-screen bg-[#06060a] flex items-center justify-center"
