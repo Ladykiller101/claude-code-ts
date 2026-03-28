@@ -119,9 +119,8 @@ export async function POST(request: NextRequest) {
     for (const { name, value, options } of cookiesToSetLater) {
       response.cookies.set(name, value, {
         ...options,
-        // Ensure cookies work for the whole site
         path: "/",
-        httpOnly: false,
+        httpOnly: true,
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
       } as never);

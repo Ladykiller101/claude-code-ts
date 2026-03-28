@@ -1,6 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useAuth } from "@/lib/auth-context";
+import { useEffect } from "react";
 
 const TradingDashboard = dynamic(
   () => import("@/components/trading/TradingDashboard"),
@@ -20,5 +22,30 @@ const TradingDashboard = dynamic(
 );
 
 export default function TradingPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      window.location.href = "/login";
+    }
+  }, [isLoading, isAuthenticated]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#06060a] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          <span className="text-zinc-500 text-sm font-mono tracking-wider">
+            AUTHENTICATING...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return <TradingDashboard />;
 }

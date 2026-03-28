@@ -364,7 +364,6 @@ export async function placeOrder(params: {
     // Dynamic import of viem to keep it server-side only
     const { privateKeyToAccount } = await import("viem/accounts");
     const { createWalletClient, http } = await import("viem");
-    const { arbitrum } = await import("viem/chains");
 
     const coin = symbolToCoin(params.symbol);
     const assetIndex = await getAssetIndex(coin);
@@ -376,9 +375,10 @@ export async function placeOrder(params: {
         : (`0x${params.agentPrivateKey}` as `0x${string}`)
     );
 
+    // Hyperliquid is NOT an EVM chain — don't use Arbitrum chain config.
+    // Wallet client only needs account + transport for signing.
     const walletClient = createWalletClient({
       account,
-      chain: arbitrum,
       transport: http(),
     });
 
@@ -419,11 +419,13 @@ export async function placeOrder(params: {
       grouping: "na" as const,
     };
 
-    // EIP-712 domain and types for Hyperliquid
+    // EIP-712 domain for Hyperliquid
+    // Mainnet uses chainId 1337, testnet uses 421614
+    const isTestnet = process.env.HYPERLIQUID_TESTNET === "1";
     const domain = {
       name: "Exchange" as const,
       version: "1" as const,
-      chainId: 1337,
+      chainId: isTestnet ? 421614 : 1337,
       verifyingContract: "0x0000000000000000000000000000000000000000" as `0x${string}`,
     };
 
@@ -504,7 +506,6 @@ export async function cancelOrder(params: {
   try {
     const { privateKeyToAccount } = await import("viem/accounts");
     const { createWalletClient, http, keccak256, encodePacked } = await import("viem");
-    const { arbitrum } = await import("viem/chains");
 
     const coin = symbolToCoin(params.symbol);
     const assetIndex = await getAssetIndex(coin);
@@ -515,9 +516,9 @@ export async function cancelOrder(params: {
         : (`0x${params.agentPrivateKey}` as `0x${string}`)
     );
 
+    // Hyperliquid is NOT an EVM chain — don't use Arbitrum chain config
     const walletClient = createWalletClient({
       account,
-      chain: arbitrum,
       transport: http(),
     });
 
@@ -527,10 +528,11 @@ export async function cancelOrder(params: {
       cancels: [{ a: assetIndex, o: parseInt(params.orderId) }],
     };
 
+    const isTestnet = process.env.HYPERLIQUID_TESTNET === "1";
     const domain = {
       name: "Exchange" as const,
       version: "1" as const,
-      chainId: 1337,
+      chainId: isTestnet ? 421614 : 1337,
       verifyingContract: "0x0000000000000000000000000000000000000000" as `0x${string}`,
     };
 

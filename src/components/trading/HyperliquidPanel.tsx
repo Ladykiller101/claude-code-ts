@@ -161,7 +161,7 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
   const [marketLoading, setMarketLoading] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
   const [positionsLoading, setPositionsLoading] = useState(false);
-  const [trades, setTrades] = useState<RecentTrade[]>(MOCK_TRADES);
+  const [trades, setTrades] = useState<RecentTrade[]>([]);
   const [usingMockData, setUsingMockData] = useState(false);
 
   // Order submission state
@@ -193,8 +193,9 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
       });
       setUsingMockData(false);
     } catch (err) {
-      console.warn("Failed to fetch market data, using mock:", err);
-      setMarket(MOCK_MARKET);
+      console.warn("Failed to fetch market data:", err);
+      // Don't use mock data — show null state so user knows data is unavailable
+      if (!market) setMarket(null);
       setUsingMockData(true);
     } finally {
       setMarketLoading(false);
@@ -296,8 +297,9 @@ export default function HyperliquidPanel({ onSymbolChange }: HyperliquidPanelPro
       setPositions(apiPositions);
       setUsingMockData(false);
     } catch (err) {
-      console.warn("Failed to fetch positions, using mock:", err);
-      setPositions(MOCK_POSITIONS);
+      console.warn("Failed to fetch positions:", err);
+      // Don't use mock data — empty positions is safer than fake positions
+      setPositions([]);
       setUsingMockData(true);
     } finally {
       setPositionsLoading(false);

@@ -74,13 +74,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient();
 
-    // Safety timeout — never stay loading more than 5s
+    // Safety timeout — never stay loading more than 15s (Vercel cold starts can be slow)
     const timeout = setTimeout(() => {
       setIsLoading((prev) => {
-        if (prev) console.warn("Auth loading timeout — forcing render");
+        if (prev) console.warn("Auth loading timeout — forcing render after 15s");
         return false;
       });
-    }, 5000);
+    }, 15000);
 
     // Get initial user (validates with server, more secure than getSession)
     supabase.auth.getUser().then(({ data: { user: initialUser } }) => {
