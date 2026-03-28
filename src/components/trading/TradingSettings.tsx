@@ -1092,23 +1092,19 @@ function ConnectionModal({
   onClose: () => void;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+    <div
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ zIndex: 99999, background: "rgba(0,0,0,0.8)" }}
       onClick={onClose}
     >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.95, opacity: 0, y: 20 }}
-        transition={{ duration: 0.2 }}
+      <div
         onClick={(e) => e.stopPropagation()}
         className="rounded-2xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
         style={{
-          background: "linear-gradient(135deg, rgba(20,20,30,0.98) 0%, rgba(15,15,22,0.98) 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          zIndex: 100000,
+          position: "relative",
+          background: "#111118",
+          border: "1px solid rgba(255,255,255,0.1)",
         }}
       >
         {/* Header */}
@@ -1255,7 +1251,6 @@ function ConnectionModal({
             onClick={onSave}
             disabled={
               saving ||
-              !testResult?.success ||
               broker.requiredCredentials.some((f) => !credentials[f.key])
             }
             className="flex-1 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-2 text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1269,8 +1264,8 @@ function ConnectionModal({
             {saving ? "SAVING..." : "SAVE & CONNECT"}
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
