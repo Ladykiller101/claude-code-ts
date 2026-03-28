@@ -28,22 +28,24 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
-        {/* Suppress browser extension DOM errors that crash React hydration */}
+        {/* Patch DOM methods to prevent browser extension interference from crashing React */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if (typeof window !== 'undefined') {
-                const origError = window.onerror;
-                window.onerror = function(msg) {
-                  if (typeof msg === 'string' && (
-                    msg.includes('insertBefore') ||
-                    msg.includes('removeChild') ||
-                    msg.includes('appendChild') ||
-                    msg.includes('not a child of this node')
-                  )) {
-                    return true; // suppress the error
+              if (typeof window !== 'undefined' && typeof Node !== 'undefined') {
+                var origInsertBefore = Node.prototype.insertBefore;
+                Node.prototype.insertBefore = function(newNode, refNode) {
+                  if (refNode && refNode.parentNode !== this) {
+                    return this.appendChild(newNode);
                   }
-                  return origError ? origError.apply(this, arguments) : false;
+                  return origInsertBefore.call(this, newNode, refNode);
+                };
+                var origRemoveChild = Node.prototype.removeChild;
+                Node.prototype.removeChild = function(child) {
+                  if (child.parentNode !== this) {
+                    return child;
+                  }
+                  return origRemoveChild.call(this, child);
                 };
               }
             `,
