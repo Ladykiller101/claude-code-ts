@@ -99,7 +99,7 @@ export default function LoginPage() {
             className="text-sm text-zinc-500 mt-1 tracking-wider uppercase"
             style={{ fontFamily: "JetBrains Mono, monospace" }}
           >
-            Sign in to AIFred Trading
+            Sign in to FinFlow — SYGMA Conseils
           </p>
         </div>
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthUser } from "@/lib/api-auth";
 import Tesseract from "tesseract.js";
 
 // ---------------------------------------------------------------------------
@@ -258,6 +259,11 @@ async function generatePdfFromImage(
 // ---------------------------------------------------------------------------
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { documentId } = body;
 

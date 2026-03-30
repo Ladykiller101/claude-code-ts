@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/db";
-import { motion, AnimatePresence } from "framer-motion";
+// No Framer Motion on table rows — causes insertBefore DOM crashes with browser extensions
 import {
   Plus,
   Search,
@@ -16,7 +16,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  ScanLine
+  ScanLine,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +51,6 @@ import DocumentViewer from "@/components/documents/DocumentViewer";
 import OCRScanner from "@/components/documents/OCRScanner";
 
 const safeFmt = (d, fmt) => { if (!d) return "—"; const p = new Date(d); return isNaN(p.getTime()) ? "—" : format(p, fmt, { locale: fr }); };
-import OCRProcessor from "@/components/documents/OCRProcessor";
 
 export default function Documents() {
   const [search, setSearch] = useState("");
@@ -64,7 +64,7 @@ export default function Documents() {
 
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ["documents"],
-    queryFn: () => db.documents.list("-created_date"),
+    queryFn: () => db.documents.list("-created_at"),
   });
 
   const { data: clients = [] } = useQuery({
@@ -129,21 +129,58 @@ export default function Documents() {
     return icons[status] || icons.en_attente;
   };
 
-  const handleOCRComplete = async (updatedDoc) => {
-    await updateMutation.mutateAsync({ id: updatedDoc.id, data: updatedDoc });
-
-    // Create invoice from extracted data
-    if (updatedDoc.extracted_data && updatedDoc.category === "facture") {
-      await createInvoiceMutation.mutateAsync({
-        document_id: updatedDoc.id,
-        client_id: updatedDoc.client_id,
-        ...updatedDoc.extracted_data,
-        status: "à_traiter",
-        category: "achat",
+  const handleOCRProcess = async (doc) => {
+    setOcrDocument(doc);
+    try {
+      // Run OCR via the API
+      const ocrRes = await fetch("/api/documents/ocr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: doc.id }),
       });
-    }
+      const ocrData = await ocrRes.json();
+      if (!ocrRes.ok) throw new Error(ocrData.error || "Erreur OCR");
 
-    setOcrDocument(null);
+      // Save extracted data back to the document
+      const structured = ocrData.structured_data || {};
+      await updateMutation.mutateAsync({
+        id: doc.id,
+        data: {
+          ocr_data: structured,
+          status: "traité",
+          extracted_data: {
+            vendor_name: structured.vendor || null,
+            invoice_number: structured.invoice_number || null,
+            invoice_date: structured.date || null,
+            due_date: structured.due_date || null,
+            amount_ht: structured.subtotal || null,
+            amount_tva: structured.tax || null,
+            amount_ttc: structured.total || null,
+          },
+        },
+      });
+
+      // Create invoice from extracted data if this is a facture
+      if (doc.category === "facture" && structured.total) {
+        await createInvoiceMutation.mutateAsync({
+          document_id: doc.id,
+          client_id: doc.client_id,
+          vendor_name: structured.vendor || null,
+          invoice_number: structured.invoice_number || null,
+          invoice_date: structured.date || null,
+          due_date: structured.due_date || null,
+          amount_ht: structured.subtotal || null,
+          amount_tva: structured.tax || null,
+          amount_ttc: structured.total || null,
+          status: "à_traiter",
+          category: "achat",
+        });
+      }
+    } catch {
+      // Error handled silently — document stays in current state
+    } finally {
+      setOcrDocument(null);
+    }
   };
 
   const filteredDocuments = documents.filter((doc) => {
@@ -242,13 +279,9 @@ export default function Documents() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <AnimatePresence>
-                {filteredDocuments.map((doc, index) => (
-                  <motion.tr
+                {filteredDocuments.map((doc) => (
+                  <TableRow
                     key={doc.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
                     className="group hover:bg-gray-800/50"
                   >
                     <TableCell>
@@ -282,11 +315,15 @@ export default function Documents() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setOcrDocument(doc)}
+                            onClick={() => handleOCRProcess(doc)}
+                            disabled={ocrDocument?.id === doc.id}
                             className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900/30"
                           >
-                            <Sparkles className="w-4 h-4 mr-1" />
-                            OCR
+                            {ocrDocument?.id === doc.id ? (
+                              <><Loader2 className="w-4 h-4 mr-1 animate-spin" />OCR...</>
+                            ) : (
+                              <><Sparkles className="w-4 h-4 mr-1" />OCR</>
+                            )}
                           </Button>
                         )}
                         <Button
@@ -325,9 +362,8 @@ export default function Documents() {
                         </DropdownMenu>
                       </div>
                     </TableCell>
-                  </motion.tr>
+                  </TableRow>
                 ))}
-              </AnimatePresence>
             </TableBody>
           </Table>
         )}
@@ -350,15 +386,6 @@ export default function Documents() {
           setUploadOpen(false);
         }}
       />
-
-      {ocrDocument && (
-        <OCRProcessor
-          document={ocrDocument}
-          open={!!ocrDocument}
-          onClose={() => setOcrDocument(null)}
-          onSave={handleOCRComplete}
-        />
-      )}
 
       <DocumentViewer
         documentId={viewerDocId}

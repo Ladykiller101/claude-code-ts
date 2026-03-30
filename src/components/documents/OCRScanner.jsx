@@ -395,6 +395,7 @@ export default function OCRScanner({ clients, open, onClose, onSave }) {
                     <SelectItem value="devis">Devis</SelectItem>
                     <SelectItem value="contrat">Contrat</SelectItem>
                     <SelectItem value="bulletin_paie">Bulletin de paie</SelectItem>
+                    <SelectItem value="declaration_fiscale">Déclaration fiscale</SelectItem>
                     <SelectItem value="releve_bancaire">Relevé bancaire</SelectItem>
                     <SelectItem value="autre">Autre</SelectItem>
                   </SelectContent>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthUser } from "@/lib/api-auth";
 import { getDriveClient, isGoogleConnected } from "@/lib/google";
 import { Readable } from "stream";
 
@@ -15,6 +16,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const clientId = formData.get("client_id") as string;
